@@ -1,0 +1,7 @@
+jdk:
+  - openjdk17
+before_install:
+  - ./scripts/prepareJitpackEvironment.sh
+install:
+  - FILE="-Dfile=aeedee_android_chat-release.aar"
+  - mvn install:install-file $FILE -DgroupId=com.github.GopikrishnanN -DartifactId=Aeedee-Android-Chat -Dversion=1.0 -Dpackaging=aar -DgeneratePom=true
