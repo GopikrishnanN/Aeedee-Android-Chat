@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="data"
+            type="com.prng.aeedee_android_chat.view.chat_user_bottom.model.UsersDataResponse" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/atvTitleAlphabet"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:background="#F1F1F1"
+            android:paddingHorizontal="10dp"
+            android:text="@{data.getFirstCharUppercase()}"
+            android:textColor="@color/black"
+            android:textSize="20sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="A" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clItemClick"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/atvTitleAlphabet">
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/aivProfileImage"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginHorizontal="10dp"
+                android:layout_marginVertical="5dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:src="@mipmap/ic_launcher" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/atvName"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:ellipsize="start"
+                android:gravity="center|start"
+                android:paddingHorizontal="10dp"
+                android:singleLine="true"
+                android:text="@{data.name}"
+                android:textColor="@color/black"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toBottomOf="@+id/aivProfileImage"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
+                app:layout_constraintTop_toTopOf="@id/aivProfileImage"
+                app:layout_constraintVertical_bias="0.0"
+                tools:text="Pandiyan" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginHorizontal="15dp"
+            android:layout_marginTop="3dp"
+            android:background="#eaeaea"
+            app:layout_constraintTop_toBottomOf="@+id/clItemClick" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

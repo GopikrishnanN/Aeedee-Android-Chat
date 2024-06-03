@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="viewModel"
+            type="com.prng.aeedee_android_chat.view.chat_message.ChatViewModel" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        tools:context=".view.chat_message.ChatActivity">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clAppBar"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/aivBack"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:padding="15dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/ic_back_icon" />
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/aivProfileImage"
+                android:layout_width="45dp"
+                android:layout_height="45dp"
+                android:layout_margin="5dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/aivBack"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:src="@mipmap/ic_launcher" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/atvName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0dp"
+                android:ellipsize="end"
+                android:paddingHorizontal="10dp"
+                android:singleLine="true"
+                android:text=""
+                android:textColor="#393939"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toStartOf="@+id/atvCancelSelection"
+                app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
+                app:layout_constraintTop_toTopOf="@id/aivProfileImage"
+                tools:text="Pandiyan" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/atvMessage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:paddingHorizontal="10dp"
+                android:singleLine="true"
+                android:text=""
+                android:textColor="#2196F3"
+                android:textSize="13sp"
+                app:layout_constraintEnd_toStartOf="@+id/atvCancelSelection"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
+                app:layout_constraintTop_toBottomOf="@+id/atvName"
+                tools:text="+1-1234-5678" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/aivCall"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:padding="15dp"
+                android:tint="#2196F3"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/ic_telephone_icon" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/atvCancelSelection"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:background="?selectableItemBackground"
+                android:gravity="center"
+                android:paddingHorizontal="10dp"
+                android:text="@string/cancel_text"
+                android:textColor="@color/blue"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#eaeaea"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toTopOf="@+id/clBottomLayout"
+            app:layout_constraintTop_toBottomOf="@+id/clAppBar">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvChatMessageList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="invisible"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/aivNoMessageIcon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/no_message_icon"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clBottomLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/clChatBox"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/clReplyLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/white"
+                android:elevation="5dp"
+                app:layout_constraintBottom_toTopOf="@+id/vChatDivider"
+                app:layout_constraintStart_toStartOf="parent"
+                app:visibilityGone="@{viewModel.mReplyVisibility}"
+                tools:visibility="gone">
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/atvMessageUserName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="center|start"
+                    android:paddingHorizontal="10dp"
+                    android:text="@{viewModel.replyUserName}"
+                    android:textColor="@color/blue"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toTopOf="@+id/atvUserMessage"
+                    app:layout_constraintEnd_toStartOf="@+id/aivCloseReply"
+                    app:layout_constraintHeight_min="30dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    tools:text="Alexander James" />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/atvUserMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="center|start"
+                    android:paddingHorizontal="10dp"
+                    android:singleLine="true"
+                    android:text="@{viewModel.replyUserMessage}"
+                    android:textColor="@color/black"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHeight_min="30dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    tools:text="Its small, rice-like shape can be tricky to handle and might easily slip through a colander when draining." />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/aivCloseReply"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="-2dp"
+                    android:onClick="@{() -> viewModel.onReplyCloseClickListener()}"
+                    android:padding="9dp"
+                    android:tint="@color/blue"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:srcCompat="@drawable/ic_circle_close_icon" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <View
+                android:id="@+id/vChatDivider"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="#eaeaea"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:visibilityGone="@{viewModel.mReplyVisibility}"
+                tools:visibility="gone" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/atvLeftTypingLoader"
+                android:layout_width="70dp"
+                android:layout_height="40dp"
+                android:layout_margin="5dp"
+                android:background="@drawable/left_top_curve_bg"
+                android:paddingVertical="5dp"
+                android:textColor="@color/black"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clChatBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHeight_min="70dp"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/clMessageLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:background="@drawable/search_edit_bg"
+                android:backgroundTint="#eaeaea"
+                android:visibility="visible"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHeight_min="40dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/aivEmojiKB"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="5dp"
+                    android:padding="10dp"
+                    android:tint="#0070BB"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:srcCompat="@drawable/ic_emoji_smile_icon" />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/atvAlphabetic"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:gravity="center"
+                    android:text="@string/aa_alphabets_text"
+                    android:textColor="#A8A8A8"
+                    android:textSize="18sp"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toBottomOf="@+id/aivEmojiKB"
+                    app:layout_constraintStart_toEndOf="@+id/aivEmojiKB"
+                    app:layout_constraintTop_toTopOf="@+id/aivEmojiKB" />
+
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/aetEditMessage"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:afterTextChanged="@{viewModel::afterTextChanged}"
+                    android:background="@null"
+                    android:hint="@string/message_here_hint"
+                    android:inputType="textMultiLine"
+                    android:onTextChanged="@{viewModel::onTextChanged}"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="5dp"
+                    android:text="@{viewModel.chatText}"
+                    android:textColor="@color/black"
+                    android:textColorHint="#4E4E4E"
+                    android:textCursorDrawable="@drawable/cursor_line_with_color"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/aivCamera"
+                    app:layout_constraintHeight_max="150dp"
+                    app:layout_constraintHeight_min="40dp"
+                    app:layout_constraintStart_toEndOf="@+id/atvAlphabetic" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/aivCamera"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:onClick="@{()-> viewModel.onCameraClickListener(aivCamera)}"
+                    android:padding="10dp"
+                    android:tint="#A8A8A8"
+                    android:visibility="visible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/aivGallery"
+                    app:srcCompat="@drawable/ic_camera_icon" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/aivGallery"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:onClick="@{() -> viewModel.onGalleryClickListener(aivSend)}"
+                    android:padding="10dp"
+                    android:tint="#A8A8A8"
+                    android:visibility="visible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/aivSend"
+                    app:srcCompat="@drawable/ic_galley_icon" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/aivSend"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="?selectableItemBackground"
+                    android:onClick="@{() -> viewModel.onSendClickListener(aivSend)}"
+                    android:padding="10dp"
+                    android:tint="#A8A8A8"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:srcCompat="@drawable/ic_send_icon" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/clDeleteChat"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="?selectableItemBackground"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#eaeaea"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/atvDeleteText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:drawableTint="#FFFF0C0C"
+                    android:gravity="center"
+                    android:text="@string/delete_chats_text"
+                    android:textColor="#FFFF0C0C"
+                    android:textSize="16sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

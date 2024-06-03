@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="data"
+            type="com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/atvRightDateTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:gravity="center"
+            android:messageDateTime="@{data.createdAt}"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="10dp"
+            android:textColor="@color/black"
+            android:visibility="@{data.dateTime.length > 0}"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHeight_min="40dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="MMM dd, h:mm a" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clSelectionLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:elevation="5dp"
+            android:paddingBottom="5dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/atvRightDateTime">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/aivSelectMessage"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="5dp"
+                android:padding="10dp"
+                android:visibility="@{data.isSelectEnable}"
+                app:imageCompat="@{@drawable/ic_selected_oval_icon}"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/clMessageLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/cvMessageView"
+                    android:layout_width="165dp"
+                    android:layout_height="200dp"
+                    android:layout_marginHorizontal="5dp"
+                    android:layout_marginTop="10dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:id="@+id/aivMessageImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:id="@+id/constraintLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@color/black_transparent"
+                            app:layout_constraintBottom_toBottomOf="@+id/aivMessageImage">
+
+                            <androidx.appcompat.widget.AppCompatTextView
+                                android:id="@+id/atvReadStatus"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:messageTime="@{data.updatedAt.length() > 0 ? data.updatedAt : data.createdAt}"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="5dp"
+                                android:textColor="@color/white"
+                                android:textSize="10sp"
+                                android:textStyle="normal"
+                                android:visibility="@{data.message.length() > 0}"
+                                app:layout_constraintBottom_toBottomOf="@+id/aivMessageReadStatus"
+                                app:layout_constraintEnd_toStartOf="@+id/aivMessageReadStatus"
+                                app:layout_constraintTop_toTopOf="@+id/aivMessageReadStatus"
+                                tools:ignore="RtlSymmetry,SmallSp"
+                                tools:text="10:30pm"
+                                tools:textColor="@color/black" />
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:id="@+id/aivMessageReadStatus"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_marginEnd="5dp"
+                                android:tint="@{data.read_status == 1 ? @color/white : data.read_status == 2 ? @color/white : @color/medium_orange}"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintTop_toTopOf="parent"
+                                app:srcCompat="@{data.read_status == 1 ? @drawable/ic_single_tick_icon : @drawable/ic_double_tick_icon}"
+                                tools:srcCompat="@drawable/ic_single_tick_icon" />
+
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+                </androidx.cardview.widget.CardView>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/aivReactionView"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_marginEnd="5dp"
+                android:layout_marginBottom="-23dp"
+                android:autoLink="web"
+                android:background="@drawable/ic_round_shape_xml"
+                android:elevation="2dp"
+                android:gravity="center"
+                android:linksClickable="true"
+                android:paddingBottom="1dp"
+                android:textColorLink="@color/link_blue"
+                android:textSize="18sp"
+                android:visibilityReaction="@{data.reaction}"
+                app:layout_constraintBottom_toBottomOf="@+id/clMessageLayout"
+                app:layout_constraintEnd_toEndOf="@+id/clMessageLayout"
+                tools:text="Hi.. www.google.com" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>
