@@ -104,7 +104,7 @@ dependencies {
     // - - Kotlin Extensions and Coroutines support for Room
     implementation("androidx.room:room-ktx:$roomVersion")
 
-    val swipeVersion = "1.2.0-alpha01"
+    val swipeVersion = "1.1.0"
     // - - Swipe Refresh
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:$swipeVersion")
 
