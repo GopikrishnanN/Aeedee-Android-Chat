@@ -4,6 +4,7 @@ plugins {
     id("kotlin-android")
     id("kotlin-parcelize")
     id("kotlin-kapt")
+    id("maven-publish")
 }
 
 android {
@@ -35,6 +36,16 @@ android {
     }
 
     dataBinding.enable = true
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = "com.github.GopikrishnanN"
+            artifactId = "Aeedee-Android-Chat"
+            version = "1.0"
+        }
+    }
 }
 
 dependencies {
