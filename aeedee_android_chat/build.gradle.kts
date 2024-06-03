@@ -43,7 +43,7 @@ publishing {
         create<MavenPublication>("maven") {
             groupId = "com.github.GopikrishnanN"
             artifactId = "Aeedee-Android-Chat"
-            version = "1.0"
+            version = "1.1"
         }
     }
 }
