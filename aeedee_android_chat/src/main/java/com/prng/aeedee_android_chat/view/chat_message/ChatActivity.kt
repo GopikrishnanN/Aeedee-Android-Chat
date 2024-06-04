@@ -448,7 +448,20 @@ class ChatActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.Default).launch {
             for (i in mResponse!!.indices) {
                 if (mResponse!![i].unique_id == data.unique_id) {
-                    mResponse!![i].reaction = data.reaction
+                    for (j in data.reaction!!.indices) {
+                        for (k in mResponse!![i].reaction!!.indices) {
+                            if (mResponse!![i].reaction!![k].userId == data.reaction!![j].userId) {
+                                mResponse!![i].reaction!![k].message = data.reaction!![j].message
+                                mResponse!![i].reaction!![k].receiverId =
+                                    data.reaction!![j].receiverId
+                                mResponse!![i].reaction!![k].messageId =
+                                    data.reaction!![j].messageId
+                                mResponse!![i].reaction!![k].userId = data.reaction!![j].userId
+                            } else {
+                                mResponse!![i].reaction!!.addAll(data.reaction!!)
+                            }
+                        }
+                    }
                     mAdapter.selectMessage(mResponse!![i], i)
                     mAdapter.notifyItemChanged(i, Payload.Update.name)
                 }

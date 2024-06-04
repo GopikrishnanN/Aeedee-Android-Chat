@@ -10,6 +10,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
+import java.lang.StringBuilder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -112,15 +113,20 @@ fun setVisibility(view: View, isVisible: Boolean) {
 
 @BindingAdapter("android:visibilityReaction")
 fun setVisibilityReaction(view: AppCompatTextView, data: MutableList<DatabaseReactionData>?) {
-    if (data != null)
-        if (data.isNotEmpty())
-            if (data[0].message.isNotEmpty()) {
-                view.text = data[0].message
+    if (data != null) {
+        val sb = StringBuilder()
+        if (data.isNotEmpty()) {
+            val size = data.size
+            for (i in data.indices) {
+                sb.append(data[i].message)
+                if ((size - 1) != i) sb.append(" ")
+                if (size > 1 && (size - 1) == i) sb.append(size.toString())
                 view.visible()
                 animateEmoji(view)
-            } else view.gone()
-        else view.gone()
-    else view.gone()
+            }
+            view.text = sb.toString()
+        } else view.gone()
+    } else view.gone()
 }
 
 private fun animateEmoji(view: AppCompatTextView) {

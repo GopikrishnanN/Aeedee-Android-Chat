@@ -44,7 +44,7 @@ const val REACTION = "reaction"
 const val READ_STATUS = "read_status"
 
 // Global User Id
-const val userID = "65f2d9b84c342fb51e72343f"
+var userID = "65f2d9b84c342fb51e72343f"
 //const val userID = "65f29bd9c4f2640a7a24d99c"
 //const val userID = "65ddbed3f98eadc6bee76361"
 
