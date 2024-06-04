@@ -136,6 +136,9 @@ class ChatViewModel : ViewModel() {
     // Reaction
     var onReactionDataListener: ((DatabaseReactionData) -> Unit)? = null
 
+    // Message Text
+    var onMessageTextListener: ((String) -> Unit)? = null
+
     // Message Type // normal, forward, reply
     private var msgType: String = MessageType.Normal.name.lowercase(Locale.getDefault())
 
@@ -289,6 +292,7 @@ class ChatViewModel : ViewModel() {
     }
 
     fun afterTextChanged(s: Editable) {
+        onMessageTextListener?.invoke(s.toString())
         if (s.isNotEmpty()) {
             lastTextEdit = System.currentTimeMillis()
             handler.postDelayed(inputFinishChecker, delay)
@@ -396,13 +400,14 @@ class ChatViewModel : ViewModel() {
             val message = view.context.resources.getString(R.string.no_internet_connection)
             message.toast(view.context).show()
 
-        } else if (chatText.value!!.isNotEmpty() || mediaFiles.isNotEmpty()) {
+        } else if (chatText.value!!.trim().isNotEmpty() || mediaFiles.isNotEmpty()) {
 
             if (!SocketHandler.getSocket().connected()) {
 
                 onSendMessageApiListener?.invoke(true)
 
             } else {
+
                 ChatRepository.emitSendMessage(sendMessage(receiverId, userId))
 
                 messageEventListener(uniqueId = uniqueId)

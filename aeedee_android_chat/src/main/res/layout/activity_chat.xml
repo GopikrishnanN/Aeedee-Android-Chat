@@ -258,7 +258,7 @@
                     android:layout_height="40dp"
                     android:layout_marginStart="5dp"
                     android:padding="10dp"
-                    android:tint="#0070BB"
+                    android:tint="@color/blue"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:srcCompat="@drawable/ic_emoji_smile_icon" />
@@ -329,7 +329,7 @@
                     android:background="?selectableItemBackground"
                     android:onClick="@{() -> viewModel.onSendClickListener(aivSend)}"
                     android:padding="10dp"
-                    android:tint="#A8A8A8"
+                    android:tint="@color/black_gray"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:srcCompat="@drawable/ic_send_icon" />

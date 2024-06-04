@@ -115,4 +115,9 @@ dependencies {
     val uCropVersion = "2.2.8-native"
     // - - U Crop
     implementation("com.github.yalantis:ucrop:$uCropVersion")
+
+    val emojiVersion = "0.6.0"
+    // - - Emoji
+    implementation("com.vanniktech:emoji-google:$emojiVersion")
+
 }

@@ -56,6 +56,7 @@ fun setImageCompat(imageView: AppCompatImageView, resource: Any) {
 fun setDateTime(textView: AppCompatTextView, dateTime: String?) {
     if (dateTime != null) {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        inputFormat.timeZone = TimeZone.getTimeZone("UTC")
         val outputFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
         if (dateTime.isNotEmpty()) {
             val date = inputFormat.parse(dateTime)
@@ -72,6 +73,7 @@ fun setDateTime(textView: AppCompatTextView, dateTime: String?) {
 fun setMessageTime(textView: AppCompatTextView, dateTime: String?) {
     if (dateTime != null) {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        inputFormat.timeZone = TimeZone.getTimeZone("UTC")
         val outputFormat = SimpleDateFormat("hh:mma", Locale.getDefault())
         if (dateTime.isNotEmpty()) {
             val date = inputFormat.parse(dateTime)

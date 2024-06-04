@@ -62,6 +62,7 @@ import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReac
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
 import com.prng.aeedee_android_chat.visible
 import com.prng.aeedee_android_chat.wrapContent
+import com.vanniktech.emoji.EmojiPopup
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -106,6 +107,8 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var scheduler: FunctionScheduler
 
     private lateinit var lDialog: CustomDialog<UploadLoaderLayoutBinding>
+
+    private lateinit var popup: EmojiPopup
 
     val takePicture: ActivityResultLauncher<Intent> = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -203,6 +206,8 @@ class ChatActivity : AppCompatActivity() {
         mViewModel.initSocket(this@ChatActivity)
 
         emitActiveTimeLoop()
+
+        emojiKeyboard()
 
         layoutManager = LinearLayoutManager(this).apply {
             stackFromEnd = true
@@ -382,6 +387,20 @@ class ChatActivity : AppCompatActivity() {
             emojiListener(data = it)
         }
 
+        mViewModel.onMessageTextListener = {
+            if (it.trim().isNotEmpty()) {
+                mActivityBinding.aivSend.setColorFilter(
+                    ContextCompat.getColor(applicationContext, R.color.blue),
+                    android.graphics.PorterDuff.Mode.SRC_IN
+                )
+            } else {
+                mActivityBinding.aivSend.setColorFilter(
+                    ContextCompat.getColor(applicationContext, R.color.black_gray),
+                    android.graphics.PorterDuff.Mode.SRC_IN
+                )
+            }
+        }
+
         mActivityBinding.clDeleteChat.setOnClickListener {
             val selectedIds = mAdapter.getSelectedIds()
             val request = DeleteMessageRequest(ids = selectedIds)
@@ -393,6 +412,20 @@ class ChatActivity : AppCompatActivity() {
             mViewModel.updateLists(mResponse!!, list, true, mAdapter) {
                 deleteMessageSelection(false)
             }
+        }
+    }
+
+    private fun emojiKeyboard() {
+        popup = EmojiPopup.Builder.fromRootView(mActivityBinding.aetEditMessage)
+            .build(mActivityBinding.aetEditMessage)
+        mActivityBinding.aivEmojiKB.setImageResource(R.drawable.ic_emoji_smile_icon)
+
+        mActivityBinding.aivEmojiKB.setOnClickListener {
+            popup.toggle()
+            mActivityBinding.aivEmojiKB.postDelayed({
+                if (popup.isShowing) mActivityBinding.aivEmojiKB.setImageResource(R.drawable.ic_keyboard_emoji_icon)
+                else mActivityBinding.aivEmojiKB.setImageResource(R.drawable.ic_emoji_smile_icon)
+            }, 100)
         }
     }
 
@@ -818,6 +851,39 @@ class ChatActivity : AppCompatActivity() {
             if (lDialog.isShowing)
                 lDialog.dismiss()
     }
+
+//    private fun emojiKeyboard() {
+//        val backgroundColor: Int = ContextCompat.getColor(applicationContext, R.color.white)
+//        val primaryColor: Int = ContextCompat.getColor(applicationContext, R.color.blue)
+//        val secondaryColor: Int = ContextCompat.getColor(applicationContext, R.color.blue)
+//        val dividerColor: Int = ContextCompat.getColor(applicationContext, R.color.gray)
+//        val textColor: Int = ContextCompat.getColor(applicationContext, R.color.blue)
+//        val textSecondaryColor: Int = ContextCompat.getColor(applicationContext, R.color.blue)
+//        val theme = EmojiTheming(
+//            backgroundColor, primaryColor, secondaryColor, dividerColor, textColor,
+//            textSecondaryColor
+//        )
+//
+//        if (this::popup.isInitialized)
+//            if (popup.isShowing)
+//                popup.dismiss()
+//        popup = EmojiPopup(
+//            mActivityBinding.clChatBox, mActivityBinding.aetEditMessage,
+//            theming = theme,
+//            popupWindowHeight = 200,
+//            onEmojiClickListener = {
+//                Log.e("emojiKeyboard", "emojiKeyboard: ${it.shortcodes}")
+//            },
+//        )
+//
+//        mActivityBinding.aivEmojiKB.setOnClickListener {
+//            if (!popup.isShowing) {
+//                popup.show()
+//            } else {
+//                popup.toggle()
+//            }
+//        }
+//    }
 
     override fun onResume() {
         super.onResume()

@@ -22,4 +22,6 @@
     <string name="this_message_was_deleted_text">This message was deleted</string>
     <string name="cancel_text">Cancel</string>
 
+    <string name="regular_text_view">Regular TextView %s</string>
+
 </resources>

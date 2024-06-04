@@ -29,6 +29,8 @@ import com.prng.aeedee_android_chat.view.chat.model.asDatabaseModel
 import com.prng.aeedee_android_chat.view.chat_message.ChatActivity
 import com.prng.aeedee_android_chat.view.chat_user_bottom.UserListBottomSheetDialog
 import com.prng.aeedee_android_chat.visible
+import com.vanniktech.emoji.EmojiManager
+import com.vanniktech.emoji.google.GoogleEmojiProvider
 import kotlinx.coroutines.launch
 
 class ChatUserListActivity : AppCompatActivity() {
@@ -43,6 +45,8 @@ class ChatUserListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityChatUserListBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        EmojiManager.install(GoogleEmojiProvider())
 
         database = DatabaseModule.provideAppDatabase(this)
         chatDao = DatabaseModule.provideChannelDao(database)
