@@ -405,7 +405,8 @@ class ChatActivity : AppCompatActivity() {
                     mAdapter.notifyItemChanged(i, Payload.Update.name)
                 }
             }
-            setDbResponse(mResponse!!, false)
+            Log.e("TAG", "emojiListener: ${mResponse!!.size}")
+            setDbResponse(mResponse!!)
         }
     }
 
@@ -577,6 +578,20 @@ class ChatActivity : AppCompatActivity() {
             }
         }
     }
+
+    private fun setDbResponse(response: List<MessageDataResponse>) {
+        lifecycleScope.launch {
+            if (response.isNotEmpty()) {
+                val dbUserMessage = DatabaseMessageData(
+                    receiverId = receiverId,
+                    response = response.asDatabaseModel(),
+                    _id = receiverId
+                )
+                chatDao.insertMessageDataUsers(dbUserMessage)
+            }
+        }
+    }
+
 
     private fun setUiData(responses: List<MessageDataResponse>) {
         if (responses.isNotEmpty()) {

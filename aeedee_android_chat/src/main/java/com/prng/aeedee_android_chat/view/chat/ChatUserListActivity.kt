@@ -65,16 +65,16 @@ class ChatUserListActivity : AppCompatActivity() {
     }
 
     private fun refreshApi() {
-//        binding.srlRefreshData.setOnRefreshListener {
-//            binding.srlRefreshData.isRefreshing = true
-//
-//            val request = ChatUserRequest(limit = 50)
-//            fetchUserList(request)
-//
-//            Handler(Looper.myLooper()!!).postDelayed({
-//                binding.srlRefreshData.isRefreshing = false
-//            }, 2000)
-//        }
+        binding.srlRefreshData.setOnRefreshListener {
+            binding.srlRefreshData.isRefreshing = true
+
+            val request = ChatUserRequest(limit = 50)
+            fetchUserList(request)
+
+            Handler(Looper.myLooper()!!).postDelayed({
+                binding.srlRefreshData.isRefreshing = false
+            }, 2000)
+        }
     }
 
     override fun onResume() {

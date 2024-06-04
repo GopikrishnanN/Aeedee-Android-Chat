@@ -11,6 +11,8 @@ data class UserDataResponse(
     val updatedAt: String? = "",
     val userId: String? = "",
     var firstChar: String? = "",
+    var count: Int? = 0,
+    var status: Int? = 0,
 )
 
 fun List<UserDataResponse>.asDatabaseModel(): List<DatabaseUsersModel> {
@@ -23,7 +25,9 @@ fun List<UserDataResponse>.asDatabaseModel(): List<DatabaseUsersModel> {
             updatedAt = it.updatedAt,
             createdAt = it.createdAt,
             avatar = it.avatar,
-            userId = it.userId
+            userId = it.userId,
+            count = it.count,
+            status = it.status,
         )
     }
 }

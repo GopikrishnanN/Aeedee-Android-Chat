@@ -15,6 +15,8 @@ data class DatabaseUsersModel(
     @ColumnInfo(name = "updatedAt") val updatedAt: String? = "",
     @ColumnInfo(name = "userId") val userId: String? = "",
     @ColumnInfo(name = "firstChar") var firstChar: String? = "",
+    @ColumnInfo(name = "count") var count: Int? = 0,
+    @ColumnInfo(name = "status") var status: Int? = 0,
 )
 
 fun List<DatabaseUsersModel>.asDatabaseModel(): List<UserDataResponse> {
@@ -27,7 +29,9 @@ fun List<DatabaseUsersModel>.asDatabaseModel(): List<UserDataResponse> {
             updatedAt = it.updatedAt,
             createdAt = it.createdAt,
             avatar = it.avatar,
-            userId = it.userId
+            userId = it.userId,
+            count = it.count,
+            status = it.status,
         )
     }
 }

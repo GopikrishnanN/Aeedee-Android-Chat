@@ -1,6 +1,7 @@
 package com.prng.aeedee_android_chat
 
 import android.animation.ObjectAnimator
+import android.graphics.Typeface
 import android.view.View
 import android.widget.ImageView
 import androidx.appcompat.widget.AppCompatImageView
@@ -146,4 +147,9 @@ private fun animateEmoji(view: AppCompatTextView) {
 @BindingAdapter("app:visibilityGone")
 fun setVisibilityGone(view: View, isVisible: Boolean?) {
     view.visibility = if (isVisible == true) View.VISIBLE else View.GONE
+}
+
+@BindingAdapter("app:typefaceStyle")
+fun setTypefaceStyle(textView: AppCompatTextView, count: Int) {
+    textView.setTypeface(null, if (count > 0) Typeface.BOLD else Typeface.NORMAL)
 }

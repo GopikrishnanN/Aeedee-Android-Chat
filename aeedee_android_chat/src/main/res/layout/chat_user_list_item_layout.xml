@@ -54,9 +54,27 @@
             android:singleLine="true"
             android:text="@{data.message}"
             android:textColor="@color/black"
+            android:textStyle="bold"
             app:layout_constraintEnd_toStartOf="@+id/vTime"
             app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
             app:layout_constraintTop_toBottomOf="@+id/atvName"
+            app:visibilityGone="@{data.count > 0}"
+            tools:text="" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/atvMessageText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:ellipsize="end"
+            android:paddingHorizontal="10dp"
+            android:singleLine="true"
+            android:text="@{data.message}"
+            android:textColor="#2B2A2A"
+            app:layout_constraintEnd_toStartOf="@+id/vTime"
+            app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
+            app:layout_constraintTop_toBottomOf="@+id/atvName"
+            app:visibilityGone="@{data.count == 0}"
             tools:text="Mail not going from my end" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -93,16 +111,16 @@
                 android:background="@drawable/chat_count_bg"
                 android:gravity="center"
                 android:singleLine="true"
-                android:text="1"
+                android:text="@{data.count.toString()}"
                 android:textColor="@color/white"
                 android:textSize="11sp"
                 android:textStyle="bold"
-                android:visibility="invisible"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="@id/vTime"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toStartOf="@+id/vTime"
                 app:layout_constraintTop_toBottomOf="@+id/atvTime"
+                app:visibilityGone="@{data.count > 0}"
                 tools:ignore="SmallSp"
                 tools:text="1" />
 

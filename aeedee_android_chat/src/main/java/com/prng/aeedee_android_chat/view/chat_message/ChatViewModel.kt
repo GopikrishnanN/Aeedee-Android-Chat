@@ -15,6 +15,7 @@ import android.text.Editable
 import android.util.Log
 import android.view.Gravity
 import android.view.View
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -30,6 +31,7 @@ import com.prng.aeedee_android_chat.extractFirstUrl
 import com.prng.aeedee_android_chat.getCurrentDateTime
 import com.prng.aeedee_android_chat.getTimeZone
 import com.prng.aeedee_android_chat.getUniqueId
+import com.prng.aeedee_android_chat.gone
 import com.prng.aeedee_android_chat.isNetworkConnection
 import com.prng.aeedee_android_chat.messageMenuList
 import com.prng.aeedee_android_chat.msgDateTimeConvert
@@ -54,6 +56,7 @@ import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReac
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.message.FileData
+import com.prng.aeedee_android_chat.visible
 import io.github.douglasjunior.androidSimpleTooltip.OverlayView
 import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltip
 import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltipUtils
@@ -555,7 +558,8 @@ class ChatViewModel : ViewModel() {
 
     @SuppressLint("SetTextI18n", "InflateParams")
     fun showPopup(data: MessageDataResponse, anchorView: View) {
-        val direction = if (data.userId != ChatActivity.userId) Gravity.END else Gravity.START
+        val isLeft = data.userId != ChatActivity.userId
+        val direction = if (isLeft) Gravity.END else Gravity.START
         val popupMenu = SimpleTooltip.Builder(mActivity).anchorView(anchorView)
             .dismissOnInsideTouch(false).dismissOnOutsideTouch(true)
             .text("Emoji Popup").contentView(R.layout.emoji_popup_layout)
@@ -566,10 +570,13 @@ class ChatViewModel : ViewModel() {
 
         val rvEmojiList = popupMenu.findViewById<RecyclerView>(R.id.rvEmojiList)
         val rvMenuData = popupMenu.findViewById<RecyclerView>(R.id.rvMenuList)
+        val cvEmoji = popupMenu.findViewById<ConstraintLayout>(R.id.cvEmoji)
 
         val mAdapter = EmojiItemsAdapter()
         rvEmojiList.setHasFixedSize(true)
         rvEmojiList.adapter = mAdapter
+
+        if (isLeft) cvEmoji.visible() else cvEmoji.gone()
 
         mAdapter.onClickListener = {
             onEmojiUpdateListener?.invoke(it, data)
