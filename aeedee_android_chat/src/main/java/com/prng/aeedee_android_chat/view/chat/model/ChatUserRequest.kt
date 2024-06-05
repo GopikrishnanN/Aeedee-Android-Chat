@@ -1,3 +1,3 @@
 package com.prng.aeedee_android_chat.view.chat.model
 
-data class ChatUserRequest(val limit: Int)
+data class ChatUserRequest(val limit: Int, val search: String = "")

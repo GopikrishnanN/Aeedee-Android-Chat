@@ -13,7 +13,11 @@ data class UserDataResponse(
     var firstChar: String? = "",
     var count: Int? = 0,
     var status: Int? = 0,
-)
+) {
+    fun getMessageStatus(): String {
+        return if (status == 1) message.toString() else "This message was deleted"
+    }
+}
 
 fun List<UserDataResponse>.asDatabaseModel(): List<DatabaseUsersModel> {
     return map {

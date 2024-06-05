@@ -15,7 +15,11 @@ import org.json.JSONObject
 
 class ChatUserListViewModel : ViewModel() {
 
-    private var usersLiveData: MutableLiveData<ChatUserResponse>? = null
+    private var usersLiveData: MutableLiveData<ChatUserResponse>? = MutableLiveData(null)
+
+    var mSearchText: String = ""
+
+    var onSearchListener: ((ChatUserRequest) -> Unit)? = null
 
     fun getChatUserList(request: ChatUserRequest): LiveData<ChatUserResponse>? {
         usersLiveData = ChatActivityRepository.getChatUserListApiCall(userId = userID, request)
@@ -23,10 +27,18 @@ class ChatUserListViewModel : ViewModel() {
     }
 
     init {
+        mSearchText = ""
         ChatRepository.onSocketStatus = { isConnected ->
             if (isConnected) {
                 ChatRepository.onConnectionListener()
                 emitChatConnection()
+            }
+        }
+
+        ChatRepository.onRefreshListListener = {
+            if (it) {
+                val request = ChatUserRequest(limit = 50, search = mSearchText.trim())
+                onSearchListener?.invoke(request)
             }
         }
     }
@@ -57,6 +69,8 @@ class ChatUserListViewModel : ViewModel() {
     }
 
     fun afterSearchTextChanged(char: CharSequence, start: Int, end: Int, count: Int) {
-
+        mSearchText = char.toString()
+        val request = ChatUserRequest(limit = 50, search = mSearchText.trim())
+        onSearchListener?.invoke(request)
     }
 }

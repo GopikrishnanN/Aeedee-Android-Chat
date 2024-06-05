@@ -39,6 +39,7 @@ import com.prng.aeedee_android_chat.repository.ChatActivityRepository
 import com.prng.aeedee_android_chat.repository.ChatRepository
 import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.toast
+import com.prng.aeedee_android_chat.userID
 import com.prng.aeedee_android_chat.view.chat_message.adapter.EmojiItemsAdapter
 import com.prng.aeedee_android_chat.view.chat_message.adapter.MenuItemsAdapter
 import com.prng.aeedee_android_chat.view.chat_message.adapter.MessageItemListAdapter
@@ -72,6 +73,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.reflect.KVisibility
 
 class ChatViewModel : ViewModel() {
 
@@ -121,9 +123,6 @@ class ChatViewModel : ViewModel() {
     // User Online Status
     var onUserOnlineListener: ((Boolean) -> Unit)? = null
 
-    // User Id Listener
-    var onUserIdListener: ((String) -> Unit)? = null
-
     // Active Time
     var onActiveTimeListener: ((ActiveTimeData) -> Unit)? = null
 
@@ -135,6 +134,9 @@ class ChatViewModel : ViewModel() {
 
     // Reaction
     var onReactionDataListener: ((DatabaseReactionData) -> Unit)? = null
+
+    // Delete Message
+    var onDeleteMessageListener: ((DeleteMessageRequest) -> Unit)? = null
 
     // Message Text
     var onMessageTextListener: ((String) -> Unit)? = null
@@ -161,26 +163,30 @@ class ChatViewModel : ViewModel() {
         mediaFiles = mutableListOf()
 
         ChatRepository.onNewMessageListener = {
-            onItemClickListListener?.invoke(it)
-            val unreadStatus: List<String?> = arrayListOf(it.unique_id ?: it._id)
-            ChatRepository.emitReadStatusListener(sendUnreadData(unreadStatus))
+            if (it.receiverId == userID) {
+                onItemClickListListener?.invoke(it)
+                if (ChatActivity.isActivity) {
+                    val unreadStatus: List<String?> = arrayListOf(it.unique_id ?: it._id)
+                    ChatRepository.emitReadStatusListener(sendUnreadData(unreadStatus))
+                }
+            }
         }
 
         ChatRepository.onTypingListener = {
-            onTypingListener?.invoke(it)
+            if (it.receiverId == userID) {
+                onTypingListener?.invoke(it.isStatus)
+            }
         }
 
         ChatRepository.onUserOnlineListener = {
             onUserOnlineListener?.invoke(it)
         }
 
-        ChatRepository.onUserIdListener = {
-            onUserIdListener?.invoke(it)
-        }
-
         ChatRepository.onActiveTimeListener = {
-            mMessageReadStatus.value = getReadStatus(it.chatStatus)
-            onActiveTimeListener?.invoke(it)
+            if (it.receiverId == receiverId) {
+                mMessageReadStatus.value = getReadStatus(it.chatStatus)
+                onActiveTimeListener?.invoke(it)
+            }
         }
 
         ChatRepository.onReadStatusListener = {
@@ -189,6 +195,10 @@ class ChatViewModel : ViewModel() {
 
         ChatRepository.onReactionDataListener = {
             onReactionDataListener?.invoke(it)
+        }
+
+        ChatRepository.onDeleteMessageListener = {
+            onDeleteMessageListener?.invoke(it)
         }
     }
 
@@ -446,6 +456,19 @@ class ChatViewModel : ViewModel() {
         clearChatText()
     }
 
+    fun emitDeleteMessage(selectedIds: List<String>) {
+        ChatRepository.emitDeleteMessage(sendDeleteMessage(selectedIds))
+    }
+
+    private fun sendDeleteMessage(selectedIds: List<String>): JSONObject {
+        val dJSONObject = JSONObject()
+        dJSONObject.put("ids", JSONArray(Gson().toJson(selectedIds)))
+        dJSONObject.put("receiver_id", receiverId)
+        dJSONObject.put("user_id", userId)
+        Log.e("TAG", "delete_message...: $dJSONObject")
+        return dJSONObject
+    }
+
     private fun getMessageText(): String {
         if (mediaFiles.isNotEmpty()) {
             val list = mediaFiles.filter { it.type == "image" }.map { it.type }
@@ -565,13 +588,14 @@ class ChatViewModel : ViewModel() {
     fun showPopup(data: MessageDataResponse, anchorView: View) {
         val isLeft = data.userId != ChatActivity.userId
         val direction = if (isLeft) Gravity.END else Gravity.START
-        val popupMenu = SimpleTooltip.Builder(mActivity).anchorView(anchorView)
-            .dismissOnInsideTouch(false).dismissOnOutsideTouch(true)
-            .text("Emoji Popup").contentView(R.layout.emoji_popup_layout)
-            .animationPadding(SimpleTooltipUtils.pxFromDp(0F)).showArrow(false)
-            .ignoreOverlay(false).gravity(direction).animated(false).overlayOffset(13F)
-            .transparentOverlay(false)
-            .highlightShape(OverlayView.HIGHLIGHT_SHAPE_RECTANGULAR_ROUNDED).build()
+        val popupMenu =
+            SimpleTooltip.Builder(mActivity).anchorView(anchorView).dismissOnInsideTouch(false)
+                .dismissOnOutsideTouch(true).text("Emoji Popup")
+                .contentView(R.layout.emoji_popup_layout)
+                .animationPadding(SimpleTooltipUtils.pxFromDp(0F)).showArrow(false)
+                .ignoreOverlay(false).gravity(direction).animated(false).overlayOffset(13F)
+                .transparentOverlay(false)
+                .highlightShape(OverlayView.HIGHLIGHT_SHAPE_RECTANGULAR_ROUNDED).build()
 
         val rvEmojiList = popupMenu.findViewById<RecyclerView>(R.id.rvEmojiList)
         val rvMenuData = popupMenu.findViewById<RecyclerView>(R.id.rvMenuList)
@@ -657,7 +681,7 @@ class ChatViewModel : ViewModel() {
         if (list != null) {
             if (list.isNotEmpty()) {
                 var unreadStatus =
-                    list.filter { it.status != 0 && it.read_status != 3 && it.unique_id != null }
+                    list.filter { /*it.status != 0 &&*/ it.read_status != 3 && it.unique_id != null }
                         .map { it.unique_id }
                 unreadStatus = unreadStatus.filter { it.toString().isNotEmpty() }.map { it }
                 if (unreadStatus.isNotEmpty()) {
@@ -680,9 +704,8 @@ class ChatViewModel : ViewModel() {
     }
 
     fun updateLists(
-        list: List<MessageDataResponse>, ids: MutableList<String>,
-        isClear: Boolean, adapter: MessageItemListAdapter,
-        onResult: (List<MessageDataResponse>) -> Unit
+        list: List<MessageDataResponse>, ids: MutableList<String>, isClear: Boolean,
+        adapter: MessageItemListAdapter, onResult: (List<MessageDataResponse>) -> Unit
     ) {
         ChatActivityRepository.updateLists(list, ids, isClear, adapter, onResult)
     }

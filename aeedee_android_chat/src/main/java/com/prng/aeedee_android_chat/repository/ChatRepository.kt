@@ -6,6 +6,7 @@ import android.util.Log
 import com.prng.aeedee_android_chat.ACTIVE_TIME
 import com.prng.aeedee_android_chat.CHAT_CONNECT
 import com.prng.aeedee_android_chat.CHAT_DISCONNECT
+import com.prng.aeedee_android_chat.DELETE_MESSAGE
 import com.prng.aeedee_android_chat.NEW_MESSAGE
 import com.prng.aeedee_android_chat.REACTION
 import com.prng.aeedee_android_chat.READ_STATUS
@@ -18,7 +19,9 @@ import com.prng.aeedee_android_chat.view.chat_message.model.ActiveTimeData
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.ReadStatusData
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
+import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.message.FileData
+import com.prng.aeedee_android_chat.view.chat_message.model.typing.TypingData
 import io.socket.client.Ack
 import io.socket.client.Socket
 import io.socket.emitter.Emitter
@@ -34,11 +37,11 @@ object ChatRepository {
 
     var onNewMessageListener: ((MessageDataResponse) -> Unit)? = null
 
-    var onTypingListener: ((Boolean) -> Unit)? = null
+    var onRefreshListListener: ((Boolean) -> Unit)? = null
+
+    var onTypingListener: ((TypingData) -> Unit)? = null
 
     var onUserOnlineListener: ((Boolean) -> Unit)? = null
-
-    var onUserIdListener: ((String) -> Unit)? = null
 
     var onSocketStatus: ((Boolean) -> Unit)? = null
 
@@ -47,6 +50,8 @@ object ChatRepository {
     var onReadStatusListener: ((ReadStatusData) -> Unit)? = null
 
     var onReactionDataListener: ((DatabaseReactionData) -> Unit)? = null
+
+    var onDeleteMessageListener: ((DeleteMessageRequest) -> Unit)? = null
 
     fun initSocket(activity: Activity) {
         mActivity = activity
@@ -78,7 +83,6 @@ object ChatRepository {
         offChatEvents()
         mSocket.on(START_TYPING, onStartTyping)
         mSocket.on(STOP_TYPING, onStopTyping)
-        mSocket.on(NEW_MESSAGE, onNewMessage)
         mSocket.on(REACTION, onReaction)
         mSocket.on(Socket.EVENT_CONNECT_ERROR, onConnectionError)
     }
@@ -86,7 +90,6 @@ object ChatRepository {
     private fun offChatEvents() {
         mSocket.off(START_TYPING, onStartTyping)
         mSocket.off(STOP_TYPING, onStopTyping)
-        mSocket.off(NEW_MESSAGE, onNewMessage)
         mSocket.off(REACTION, onReaction)
         mSocket.off(Socket.EVENT_CONNECT_ERROR, onConnectionError)
     }
@@ -94,6 +97,8 @@ object ChatRepository {
     fun onConnectionListener() {
         mSocket.on(CHAT_CONNECT, onChatConnect)
         mSocket.on(CHAT_DISCONNECT, onChatDisconnect)
+        mSocket.on(NEW_MESSAGE, onNewMessage)
+        mSocket.on(DELETE_MESSAGE, onDeleteMessage)
     }
 
     fun emitReadStatusListener(data: JSONObject) {
@@ -135,27 +140,38 @@ object ChatRepository {
     }
 
     fun emitSendMessage(data: JSONObject) {
-        mSocket.emit(NEW_MESSAGE, data, Ack { args ->
-            mActivity.runOnUiThread {
-                try {
-                    val response = JSONObject(args[0].toString())
-                    Log.e("TAG", "emitSendMessage: $response")
-                    onUserIdListener?.invoke(response.getString("_id"))
-                } catch (_: Exception) {
-                }
-            }
-        })
+        mSocket.emit(NEW_MESSAGE, data)
+//        mSocket.emit(NEW_MESSAGE, data, Ack { args ->
+//            mActivity.runOnUiThread {
+//                try {
+//                    val response = JSONObject(args[0].toString())
+//                    Log.e("TAG", "emitSendMessage: $response")
+//                    onUserIdListener?.invoke(response.getString("_id"))
+//                } catch (_: Exception) {
+//                }
+//            }
+//        })
     }
 
-    private val onStartTyping = Emitter.Listener { _ ->
+    fun emitDeleteMessage(data: JSONObject) {
+        mSocket.emit(DELETE_MESSAGE, data)
+    }
+
+    private val onStartTyping = Emitter.Listener { args ->
         mActivity.runOnUiThread {
-            onTypingListener?.invoke(true)
+            val json = JSONObject(args[0].toString())
+            val receiverId = json.getOrDefault("receiver_id", String())
+            val data = TypingData(receiverId = receiverId, isStatus = true)
+            onTypingListener?.invoke(data)
         }
     }
 
-    private val onStopTyping = Emitter.Listener { _ ->
+    private val onStopTyping = Emitter.Listener { args ->
         mActivity.runOnUiThread {
-            onTypingListener?.invoke(false)
+            val json = JSONObject(args[0].toString())
+            val receiverId = json.getOrDefault("receiver_id", String())
+            val data = TypingData(receiverId = receiverId, isStatus = false)
+            onTypingListener?.invoke(data)
         }
     }
 
@@ -181,6 +197,7 @@ object ChatRepository {
                 updatedAt = json.getString("updatedAt"),
             )
             onNewMessageListener?.invoke(response)
+            onRefreshListListener?.invoke(true)
         }
     }
 
@@ -199,7 +216,6 @@ object ChatRepository {
 
         return fileDataList
     }
-
 
     private val onChatConnect = Emitter.Listener { _ ->
         mActivity.runOnUiThread {
@@ -243,6 +259,16 @@ object ChatRepository {
         }
     }
 
+    private val onDeleteMessage = Emitter.Listener { args ->
+        mActivity.runOnUiThread {
+            Log.e("TAG", "...DeleteMessage... ${args[0]}")
+            val data = JSONObject(args[0].toString()).toDataClass<DeleteMessageRequest?>()
+            if (data != null) {
+                onDeleteMessageListener?.invoke(data)
+            }
+        }
+    }
+
     private val onConnectionError = Emitter.Listener { args ->
         mActivity.runOnUiThread {
             Log.e("TAG", "...Socket Error... ${args[0]}")
@@ -252,7 +278,6 @@ object ChatRepository {
     fun offEvents() {
         mSocket.off(START_TYPING, onStartTyping)
         mSocket.off(STOP_TYPING, onStopTyping)
-        mSocket.off(NEW_MESSAGE, onNewMessage)
         mSocket.off(REACTION, onReaction)
         mSocket.off(Socket.EVENT_CONNECT_ERROR, onConnectionError)
         mSocket.off(READ_STATUS, onReadStatus)
@@ -261,5 +286,7 @@ object ChatRepository {
     fun offEventsConnection() {
         mSocket.off(CHAT_CONNECT, onChatConnect)
         mSocket.off(CHAT_DISCONNECT, onChatDisconnect)
+        mSocket.off(NEW_MESSAGE, onNewMessage)
+        mSocket.off(DELETE_MESSAGE, onDeleteMessage)
     }
 }

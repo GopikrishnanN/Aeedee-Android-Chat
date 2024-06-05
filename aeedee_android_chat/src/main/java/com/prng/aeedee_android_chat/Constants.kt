@@ -32,7 +32,6 @@ import java.util.TimeZone
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-
 // Socket Event Name's
 const val START_TYPING = "start_typing"
 const val STOP_TYPING = "stop_typing"
@@ -42,11 +41,14 @@ const val CHAT_DISCONNECT = "chat_disconnect"
 const val ACTIVE_TIME = "active_time"
 const val REACTION = "reaction"
 const val READ_STATUS = "read_status"
+const val DELETE_MESSAGE = "delete-msg"
 
 // Global User Id
 var userID = "65f2d9b84c342fb51e72343f"
-//const val userID = "65f29bd9c4f2640a7a24d99c"
-//const val userID = "65ddbed3f98eadc6bee76361"
+//var userID = "65f29bd9c4f2640a7a24d99c"
+//var userID = "6651bf9e6508b954311c0afb"
+//var userID = "664ca37f1cabc43f39b51ba4"
+//var userID = "65ddbed3f98eadc6bee76361"
 
 // Layout Size
 const val wrapContent = WindowManager.LayoutParams.WRAP_CONTENT

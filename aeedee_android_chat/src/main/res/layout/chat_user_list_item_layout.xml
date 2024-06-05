@@ -69,7 +69,7 @@
             android:ellipsize="end"
             android:paddingHorizontal="10dp"
             android:singleLine="true"
-            android:text="@{data.message}"
+            android:text="@{data.getMessageStatus()}"
             android:textColor="#2B2A2A"
             app:layout_constraintEnd_toStartOf="@+id/vTime"
             app:layout_constraintStart_toEndOf="@+id/aivProfileImage"

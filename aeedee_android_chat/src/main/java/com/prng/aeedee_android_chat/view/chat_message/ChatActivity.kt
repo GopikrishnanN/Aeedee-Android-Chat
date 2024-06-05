@@ -80,6 +80,8 @@ class ChatActivity : AppCompatActivity() {
         // User Id
         var userId: String = ""
         private var receiverId: String = ""
+
+        var isActivity = true
     }
 
     private var name: String = ""
@@ -182,10 +184,8 @@ class ChatActivity : AppCompatActivity() {
                         if (isFirstLocalDb) {
                             isFirstLocalDb = false
                             isRecent = true
-//                            val lastMessageId =
-//                                if (mResponse != null && mResponse!!.isNotEmpty()) mResponse!!.last()._id.ifEmpty { mResponse!!.last().unique_id!! } else ""
                             val lastMessageId =
-                                if (mResponse != null && mResponse!!.isNotEmpty()) mResponse!!.last()._id else ""
+                                if (mResponse != null && mResponse!!.isNotEmpty()) mResponse!!.last().unique_id.toString() else ""
                             if (lastMessageId.isNotEmpty()) {
                                 fetchMessageApi(lastMessageId, 1)
                             }
@@ -308,12 +308,6 @@ class ChatActivity : AppCompatActivity() {
             sendChatMessage()
         }
 
-        mViewModel.onUserIdListener = {
-            if (it.isNotEmpty()) {
-                mViewModel.messageEventListener(it)
-            }
-        }
-
         mViewModel.onLaunchGallery = {
             if (it) {
                 imagePicker()
@@ -387,6 +381,16 @@ class ChatActivity : AppCompatActivity() {
             emojiListener(data = it)
         }
 
+        mViewModel.onDeleteMessageListener = { data ->
+            mResponse?.let {
+                mViewModel.updateLists(it, data.ids!!.toMutableList(), false, mAdapter) {
+                    dismiss()
+                    deleteMessageSelection(false)
+                    setDbResponse(mResponse!!, false)
+                }
+            }
+        }
+
         mViewModel.onMessageTextListener = {
             if (it.trim().isNotEmpty()) {
                 mActivityBinding.aivSend.setColorFilter(
@@ -402,9 +406,19 @@ class ChatActivity : AppCompatActivity() {
         }
 
         mActivityBinding.clDeleteChat.setOnClickListener {
-            val selectedIds = mAdapter.getSelectedIds()
-            val request = DeleteMessageRequest(ids = selectedIds)
-            deleteMessage(request)
+            val selectedIds = mAdapter.getSelectedIds().toMutableList()
+            mViewModel.emitDeleteMessage(selectedIds)
+
+//            val request = DeleteMessageRequest(ids = selectedIds)
+//            deleteMessage(request)
+
+            mResponse?.let {
+                mViewModel.updateLists(it, selectedIds, false, mAdapter) {
+                    dismiss()
+                    deleteMessageSelection(false)
+                    setDbResponse(mResponse!!, false)
+                }
+            }
         }
 
         mActivityBinding.atvCancelSelection.setOnClickListener {
@@ -526,6 +540,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun initIntent() {
+        isActivity = true
         intent?.let {
             if (it.hasExtra("userId")) userId = it.getStringExtra("userId")!!
             if (it.hasExtra("receiverId")) receiverId = it.getStringExtra("receiverId")!!
@@ -567,7 +582,11 @@ class ChatActivity : AppCompatActivity() {
                         lastId = ""
                         totalCount = 0
                     }
+//                if (isFirstTime) {
+//                    setDbResponse(it.response)
+//                } else {
                 setDbResponse(it.response, true)
+//                }
             }
         }
     }
@@ -614,17 +633,14 @@ class ChatActivity : AppCompatActivity() {
 
     private fun setDbResponse(response: List<MessageDataResponse>) {
         lifecycleScope.launch {
-            if (response.isNotEmpty()) {
-                val dbUserMessage = DatabaseMessageData(
-                    receiverId = receiverId,
-                    response = response.asDatabaseModel(),
-                    _id = receiverId
-                )
-                chatDao.insertMessageDataUsers(dbUserMessage)
-            }
+            val dbUserMessage = DatabaseMessageData(
+                receiverId = receiverId,
+                response = if (response.isNotEmpty()) response.asDatabaseModel() else arrayListOf(),
+                _id = receiverId
+            )
+            chatDao.insertMessageDataUsers(dbUserMessage)
         }
     }
-
 
     private fun setUiData(responses: List<MessageDataResponse>) {
         if (responses.isNotEmpty()) {
@@ -887,6 +903,7 @@ class ChatActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        isActivity = true
         if ((SocketHandler.getSocket().connected()))
             if (this::scheduler.isInitialized)
                 scheduler.start()
@@ -894,6 +911,7 @@ class ChatActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        isActivity = false
         if ((SocketHandler.getSocket().connected()))
             if (this::scheduler.isInitialized)
                 scheduler.pause()
@@ -901,9 +919,11 @@ class ChatActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isActivity = false
         if ((SocketHandler.getSocket().connected())) {
             ChatRepository.offEvents()
             mViewModel.clearTyping()
+            ChatRepository.onNewMessageListener = null
             if (this::scheduler.isInitialized)
                 scheduler.stop()
         }

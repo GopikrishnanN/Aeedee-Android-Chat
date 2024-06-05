@@ -1,10 +1,13 @@
 package com.prng.aeedee_android_chat.view.chat
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.lifecycleScope
@@ -48,6 +51,8 @@ class ChatUserListActivity : AppCompatActivity() {
 
         EmojiManager.install(GoogleEmojiProvider())
 
+        setUserId()
+
         database = DatabaseModule.provideAppDatabase(this)
         chatDao = DatabaseModule.provideChannelDao(database)
 
@@ -66,6 +71,23 @@ class ChatUserListActivity : AppCompatActivity() {
         onClickOperation()
 
         dbUpdateData()
+    }
+
+    private fun setUserId() {
+//        Log.e("TAG", "setUserId: ${Build.MODEL}")
+//        userID = when (Build.MODEL) {
+//            "vivo 1804" -> {
+//                "65f2d9b84c342fb51e72343f"
+//            }
+//
+//            "vivo 1820" -> {
+//                "65f29bd9c4f2640a7a24d99c"
+//            }
+//
+//            else -> {
+//                "6651bf9e6508b954311c0afb"
+//            }
+//        }
     }
 
     private fun refreshApi() {
@@ -99,16 +121,15 @@ class ChatUserListActivity : AppCompatActivity() {
     }
 
     private fun fetchUserList(request: ChatUserRequest) {
-
         if (!isNetworkConnection(applicationContext)) {
             val message = resources.getString(R.string.no_internet_connection)
             message.toast(applicationContext).show()
-        }
-
-        mViewModel.getChatUserList(request)?.observe(this) {
-            if (it != null) {
-                lifecycleScope.launch {
-                    chatDao.replaceUsers(it.response.asDatabaseModel())
+        } else {
+            mViewModel.getChatUserList(request)?.observe(this) {
+                if (it != null) {
+                    lifecycleScope.launch {
+                        chatDao.replaceUsers(it.response.asDatabaseModel())
+                    }
                 }
             }
         }
@@ -150,6 +171,10 @@ class ChatUserListActivity : AppCompatActivity() {
             intent.putExtra("name", data.userName)
             intent.putExtra("avatar", data.avatar)
             startActivity(intent)
+        }
+
+        mViewModel.onSearchListener = {
+            fetchUserList(it)
         }
     }
 
