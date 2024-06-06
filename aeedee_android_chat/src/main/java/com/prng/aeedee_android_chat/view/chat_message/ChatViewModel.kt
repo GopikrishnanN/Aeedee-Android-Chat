@@ -163,7 +163,7 @@ class ChatViewModel : ViewModel() {
         mediaFiles = mutableListOf()
 
         ChatRepository.onNewMessageListener = {
-            if (it.receiverId == userID) {
+            if (it.receiverId == userID && it.userId == receiverId) {
                 onItemClickListListener?.invoke(it)
                 if (ChatActivity.isActivity) {
                     val unreadStatus: List<String?> = arrayListOf(it.unique_id ?: it._id)
@@ -705,9 +705,10 @@ class ChatViewModel : ViewModel() {
 
     fun updateLists(
         list: List<MessageDataResponse>, ids: MutableList<String>, isClear: Boolean,
-        adapter: MessageItemListAdapter, onResult: (List<MessageDataResponse>) -> Unit
+        activity: Activity, adapter: MessageItemListAdapter,
+        onResult: (List<MessageDataResponse>) -> Unit
     ) {
-        ChatActivityRepository.updateLists(list, ids, isClear, adapter, onResult)
+        ChatActivityRepository.updateLists(list, ids, isClear, adapter, activity, onResult)
     }
 
 }

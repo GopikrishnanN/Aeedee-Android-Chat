@@ -28,6 +28,19 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:src="@mipmap/ic_launcher" />
 
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/aivSelectionItem"
+            android:layout_width="23dp"
+            android:layout_height="23dp"
+            android:layout_marginBottom="-8dp"
+            android:background="@drawable/select_outline_oval_bg"
+            android:padding="4dp"
+            android:tint="@color/white"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/aivProfileImage"
+            app:layout_constraintEnd_toStartOf="@+id/atvName"
+            app:srcCompat="@drawable/ic_single_tick_icon" />
+
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/atvName"
             android:layout_width="0dp"
@@ -39,7 +52,7 @@
             android:text="@{data.userName}"
             android:textColor="@color/black"
             android:textStyle="bold"
-            app:layout_constraintEnd_toStartOf="@+id/vTime"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
             app:layout_constraintTop_toTopOf="@id/aivProfileImage"
             tools:text="Pandiyan" />
@@ -55,7 +68,7 @@
             android:text="@{data.getMessageStatus()}"
             android:textColor="@color/black"
             android:textStyle="bold"
-            app:layout_constraintEnd_toStartOf="@+id/vTime"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
             app:layout_constraintTop_toBottomOf="@+id/atvName"
             app:visibilityGone="@{data.count > 0}"
@@ -71,60 +84,11 @@
             android:singleLine="true"
             android:text="@{data.getMessageStatus()}"
             android:textColor="#2B2A2A"
-            app:layout_constraintEnd_toStartOf="@+id/vTime"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
             app:layout_constraintTop_toBottomOf="@+id/atvName"
             app:visibilityGone="@{data.count == 0}"
             tools:text="Mail not going from my end" />
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/vTime"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginVertical="10dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintWidth_min="80dp">
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/atvTime"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:dateTime="@{data.updatedAt.length() > 0 ? data.updatedAt : data.createdAt}"
-                android:gravity="center"
-                android:paddingHorizontal="10dp"
-                android:singleLine="true"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                app:layout_constraintBottom_toTopOf="@+id/atvCount"
-                app:layout_constraintEnd_toEndOf="@id/vTime"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toStartOf="@+id/vTime"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:text="6:25 PM" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/atvCount"
-                android:layout_width="23dp"
-                android:layout_height="23dp"
-                android:background="@drawable/chat_count_bg"
-                android:gravity="center"
-                android:singleLine="true"
-                android:text="@{data.count.toString()}"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="@id/vTime"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toStartOf="@+id/vTime"
-                app:layout_constraintTop_toBottomOf="@+id/atvTime"
-                app:visibilityGone="@{data.count > 0}"
-                tools:ignore="SmallSp"
-                tools:text="1" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
             android:layout_width="match_parent"

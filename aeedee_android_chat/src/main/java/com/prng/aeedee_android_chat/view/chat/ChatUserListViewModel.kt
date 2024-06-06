@@ -11,6 +11,7 @@ import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.userID
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserResponse
+import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
 import org.json.JSONObject
 
 class ChatUserListViewModel : ViewModel() {
@@ -20,6 +21,9 @@ class ChatUserListViewModel : ViewModel() {
     var mSearchText: String = ""
 
     var onSearchListener: ((ChatUserRequest) -> Unit)? = null
+
+    // Delete Message
+    var onDeleteMessageListener: ((DeleteMessageRequest) -> Unit)? = null
 
     fun getChatUserList(request: ChatUserRequest): LiveData<ChatUserResponse>? {
         usersLiveData = ChatActivityRepository.getChatUserListApiCall(userId = userID, request)
@@ -41,6 +45,11 @@ class ChatUserListViewModel : ViewModel() {
                 onSearchListener?.invoke(request)
             }
         }
+
+        ChatRepository.onDeleteMessageUpdateListener = {
+            onDeleteMessageListener?.invoke(it)
+        }
+
     }
 
     fun initSocket(activity: Activity) {

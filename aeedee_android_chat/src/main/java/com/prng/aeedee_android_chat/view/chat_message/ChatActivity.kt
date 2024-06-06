@@ -60,6 +60,7 @@ import com.prng.aeedee_android_chat.view.chat_message.model.MessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.asDatabaseModel
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
+import com.prng.aeedee_android_chat.view.forward_chat.ForwardUsersActivity
 import com.prng.aeedee_android_chat.visible
 import com.prng.aeedee_android_chat.wrapContent
 import com.vanniktech.emoji.EmojiPopup
@@ -192,10 +193,14 @@ class ChatActivity : AppCompatActivity() {
                         }
                     } else {
                         setUiData(emptyList())
+                        mActivityBinding.pbProgress.visible()
+                        mActivityBinding.aivNoMessageIcon.gone()
                         isFirstLocalDb = false
                         fetchMessageApi(lastId, 0)
                     }
                 } else {
+                    mActivityBinding.pbProgress.visible()
+                    mActivityBinding.aivNoMessageIcon.gone()
                     isFirstLocalDb = false
                     fetchMessageApi(lastId, 0)
                 }
@@ -272,6 +277,11 @@ class ChatActivity : AppCompatActivity() {
 
                 2 -> {
                     // - - Forward - -
+                    val forwardIntent = Intent(this@ChatActivity, ForwardUsersActivity::class.java)
+                    forwardIntent.putExtra("message", data.message)
+                    forwardIntent.putExtra("id", data._id)
+                    forwardIntent.putExtra("userId", data.userId)
+                    startActivity(forwardIntent)
                     Log.e("TAG", "Forward: ")
                 }
 
@@ -287,6 +297,11 @@ class ChatActivity : AppCompatActivity() {
             mResponse?.let { _ ->
                 runBlocking {
                     isSocket = true
+                    val idAlready =
+                        mResponse!!.filter { d -> d.unique_id == it.unique_id }.map { it.unique_id }
+                    if (idAlready.isNotEmpty()) {
+                        return@runBlocking
+                    }
                     val processedData: MessageDataResponse = if (mResponse!!.isNotEmpty()) {
                         mViewModel.addDateTime(it, mResponse!!.last().createdAt)
                     } else {
@@ -383,7 +398,7 @@ class ChatActivity : AppCompatActivity() {
 
         mViewModel.onDeleteMessageListener = { data ->
             mResponse?.let {
-                mViewModel.updateLists(it, data.ids!!.toMutableList(), false, mAdapter) {
+                mViewModel.updateLists(it, data.ids!!.toMutableList(), false, this, mAdapter) {
                     dismiss()
                     deleteMessageSelection(false)
                     setDbResponse(mResponse!!, false)
@@ -413,7 +428,7 @@ class ChatActivity : AppCompatActivity() {
 //            deleteMessage(request)
 
             mResponse?.let {
-                mViewModel.updateLists(it, selectedIds, false, mAdapter) {
+                mViewModel.updateLists(it, selectedIds, false, this, mAdapter) {
                     dismiss()
                     deleteMessageSelection(false)
                     setDbResponse(mResponse!!, false)
@@ -423,7 +438,7 @@ class ChatActivity : AppCompatActivity() {
 
         mActivityBinding.atvCancelSelection.setOnClickListener {
             val list = mAdapter.getSelectedIds().toMutableList()
-            mViewModel.updateLists(mResponse!!, list, true, mAdapter) {
+            mViewModel.updateLists(mResponse!!, list, true, this, mAdapter) {
                 deleteMessageSelection(false)
             }
         }
@@ -573,6 +588,7 @@ class ChatActivity : AppCompatActivity() {
 
         mViewModel.getChatUserList(request).observe(this) {
             if (it != null) {
+                mActivityBinding.pbProgress.gone()
                 isSocket = false
                 if (it.lastId != null)
                     if (it.lastId.isNotEmpty()) {
@@ -627,6 +643,8 @@ class ChatActivity : AppCompatActivity() {
                         chatDao.insertMessageDataUsers(dbUserMessage)
                     }
                 }
+            } else if (mResponse!!.isEmpty()) {
+                mActivityBinding.aivNoMessageIcon.visible()
             }
         }
     }
@@ -643,9 +661,9 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun setUiData(responses: List<MessageDataResponse>) {
+        mActivityBinding.aivNoMessageIcon.gone()
         if (responses.isNotEmpty()) {
             Log.e("TAG", "setUiDataResponses: ${responses.size}")
-            mActivityBinding.aivNoMessageIcon.gone()
             if (mResponse!!.isEmpty()) {
                 mResponse?.clear()
                 runBlocking {
@@ -695,7 +713,9 @@ class ChatActivity : AppCompatActivity() {
                 mViewModel.updateReadStatus(mResponse)
             }
         } else {
-            if (mResponse!!.isEmpty()) mActivityBinding.aivNoMessageIcon.visible()
+            if (mResponse!!.isEmpty()) {
+                mActivityBinding.aivNoMessageIcon.visible()
+            }
         }
     }
 
@@ -828,7 +848,7 @@ class ChatActivity : AppCompatActivity() {
             if (data != null) {
                 mResponse?.apply {
                     val list = request.ids!!.toMutableList()
-                    mViewModel.updateLists(this, list, false, mAdapter) {
+                    mViewModel.updateLists(this, list, false, this@ChatActivity, mAdapter) {
                         dismiss()
                         deleteMessageSelection(false)
                         setDbResponse(mResponse!!, false)

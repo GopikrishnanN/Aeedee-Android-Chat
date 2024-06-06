@@ -22,7 +22,6 @@ import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReac
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.message.FileData
 import com.prng.aeedee_android_chat.view.chat_message.model.typing.TypingData
-import io.socket.client.Ack
 import io.socket.client.Socket
 import io.socket.emitter.Emitter
 import org.json.JSONArray
@@ -52,6 +51,8 @@ object ChatRepository {
     var onReactionDataListener: ((DatabaseReactionData) -> Unit)? = null
 
     var onDeleteMessageListener: ((DeleteMessageRequest) -> Unit)? = null
+
+    var onDeleteMessageUpdateListener: ((DeleteMessageRequest) -> Unit)? = null
 
     fun initSocket(activity: Activity) {
         mActivity = activity
@@ -83,22 +84,22 @@ object ChatRepository {
         offChatEvents()
         mSocket.on(START_TYPING, onStartTyping)
         mSocket.on(STOP_TYPING, onStopTyping)
-        mSocket.on(REACTION, onReaction)
         mSocket.on(Socket.EVENT_CONNECT_ERROR, onConnectionError)
     }
 
     private fun offChatEvents() {
         mSocket.off(START_TYPING, onStartTyping)
         mSocket.off(STOP_TYPING, onStopTyping)
-        mSocket.off(REACTION, onReaction)
         mSocket.off(Socket.EVENT_CONNECT_ERROR, onConnectionError)
     }
 
     fun onConnectionListener() {
+        offEventsConnection()
         mSocket.on(CHAT_CONNECT, onChatConnect)
         mSocket.on(CHAT_DISCONNECT, onChatDisconnect)
         mSocket.on(NEW_MESSAGE, onNewMessage)
         mSocket.on(DELETE_MESSAGE, onDeleteMessage)
+        mSocket.on(REACTION, onReaction)
     }
 
     fun emitReadStatusListener(data: JSONObject) {
@@ -265,6 +266,7 @@ object ChatRepository {
             val data = JSONObject(args[0].toString()).toDataClass<DeleteMessageRequest?>()
             if (data != null) {
                 onDeleteMessageListener?.invoke(data)
+                onDeleteMessageUpdateListener?.invoke(data)
             }
         }
     }
@@ -278,7 +280,6 @@ object ChatRepository {
     fun offEvents() {
         mSocket.off(START_TYPING, onStartTyping)
         mSocket.off(STOP_TYPING, onStopTyping)
-        mSocket.off(REACTION, onReaction)
         mSocket.off(Socket.EVENT_CONNECT_ERROR, onConnectionError)
         mSocket.off(READ_STATUS, onReadStatus)
     }
@@ -288,5 +289,6 @@ object ChatRepository {
         mSocket.off(CHAT_DISCONNECT, onChatDisconnect)
         mSocket.off(NEW_MESSAGE, onNewMessage)
         mSocket.off(DELETE_MESSAGE, onDeleteMessage)
+        mSocket.off(REACTION, onReaction)
     }
 }

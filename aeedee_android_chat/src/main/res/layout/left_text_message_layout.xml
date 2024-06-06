@@ -55,35 +55,63 @@
                 android:id="@+id/clLeftTextMessage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:paddingVertical="5dp"
                 app:layout_constraintStart_toEndOf="@+id/aivSelectMessage"
                 app:layout_constraintTop_toTopOf="parent">
 
-                <androidx.appcompat.widget.AppCompatTextView
-                    android:id="@+id/atvLeftTextMessage"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/clLeftTexLayout"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_margin="5dp"
-                    android:autoLink="web"
                     android:background="@drawable/left_top_curve_bg"
-                    android:gravity="center|start"
-                    android:linksClickable="true"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="10dp"
-                    android:text="@{data.message}"
-                    android:textColor="@color/black"
-                    android:textColorLink="@color/blue"
-                    app:layout_constraintHeight_min="35dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintWidth_max="250dp"
-                    app:layout_constraintWidth_min="50dp"
-                    tools:text="Hi.. www.google.com" />
+                    app:layout_constraintWidth_min="100dp">
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        android:id="@+id/atvLeftTextMessage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="5dp"
+                        android:autoLink="web"
+                        android:gravity="center|start"
+                        android:linksClickable="true"
+                        android:paddingHorizontal="10dp"
+                        android:text="@{data.message}"
+                        android:textColor="@color/black"
+                        android:textColorLink="@color/blue"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintWidth_max="250dp"
+                        app:layout_constraintWidth_min="40dp"
+                        tools:text="Hi.. www.google.com" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        android:id="@+id/atvReadStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:messageTime="@{data.updatedAt.length() > 0 ? data.updatedAt : data.createdAt}"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="5dp"
+                        android:paddingBottom="5dp"
+                        android:textColor="@color/black"
+                        android:textSize="10sp"
+                        android:textStyle="normal"
+                        android:visibility="@{data.message.length() > 0}"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/atvLeftTextMessage"
+                        tools:ignore="RtlSymmetry,SmallSp"
+                        tools:text="10:30pm" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
                 <androidx.appcompat.widget.AppCompatTextView
                     android:id="@+id/aivReactionView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="3dp"
+                    android:layout_marginEnd="5dp"
                     android:layout_marginBottom="-20dp"
                     android:background="@drawable/ic_round_shape_xml"
                     android:elevation="2dp"
@@ -93,8 +121,8 @@
                     android:paddingBottom="2dp"
                     android:textSize="16sp"
                     android:visibilityReaction="@{data.reaction}"
-                    app:layout_constraintBottom_toBottomOf="@+id/atvLeftTextMessage"
-                    app:layout_constraintStart_toStartOf="@+id/atvLeftTextMessage"
+                    app:layout_constraintBottom_toBottomOf="@+id/clLeftTexLayout"
+                    app:layout_constraintStart_toStartOf="@+id/clLeftTexLayout"
                     tools:text="" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>

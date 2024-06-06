@@ -7,7 +7,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.lifecycleScope
@@ -74,20 +73,20 @@ class ChatUserListActivity : AppCompatActivity() {
     }
 
     private fun setUserId() {
-//        Log.e("TAG", "setUserId: ${Build.MODEL}")
-//        userID = when (Build.MODEL) {
-//            "vivo 1804" -> {
-//                "65f2d9b84c342fb51e72343f"
-//            }
-//
-//            "vivo 1820" -> {
-//                "65f29bd9c4f2640a7a24d99c"
-//            }
-//
-//            else -> {
-//                "6651bf9e6508b954311c0afb"
-//            }
-//        }
+        Log.e("TAG", "setUserId: ${Build.MODEL}")
+        userID = when (Build.MODEL) {
+            "vivo 1804" -> {
+                "65f2d9b84c342fb51e72343f"
+            }
+
+            "vivo 1820" -> {
+                "65f29bd9c4f2640a7a24d99c"
+            }
+
+            else -> {
+                "65ddbed3f98eadc6bee76361"
+            }
+        }
     }
 
     private fun refreshApi() {
@@ -105,6 +104,8 @@ class ChatUserListActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        binding.aetSearchUser.setText("")
+        mViewModel.mSearchText = ""
         val request = ChatUserRequest(limit = 50)
         fetchUserList(request)
     }
@@ -176,6 +177,13 @@ class ChatUserListActivity : AppCompatActivity() {
         mViewModel.onSearchListener = {
             fetchUserList(it)
         }
+
+        mViewModel.onDeleteMessageListener = {
+            lifecycleScope.launch {
+                chatDao.updateStatusForUniqueIds(it.ids!!)
+            }
+        }
+
     }
 
     private fun openBottomSheet() {

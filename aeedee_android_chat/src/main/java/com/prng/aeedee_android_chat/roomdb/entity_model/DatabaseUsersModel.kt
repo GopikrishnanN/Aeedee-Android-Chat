@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.prng.aeedee_android_chat.view.chat.model.UserDataResponse
 
-@Entity
+@Entity(tableName = "DatabaseUsersModel")
 data class DatabaseUsersModel(
     @PrimaryKey val _id: String,
     @ColumnInfo(name = "userName") val userName: String? = "",

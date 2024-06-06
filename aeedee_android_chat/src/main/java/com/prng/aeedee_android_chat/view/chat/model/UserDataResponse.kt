@@ -13,6 +13,7 @@ data class UserDataResponse(
     var firstChar: String? = "",
     var count: Int? = 0,
     var status: Int? = 0,
+    var isSelected: Boolean? = false,
 ) {
     fun getMessageStatus(): String {
         return if (status == 1) message.toString() else "This message was deleted"

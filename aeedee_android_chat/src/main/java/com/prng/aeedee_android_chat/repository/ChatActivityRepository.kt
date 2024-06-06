@@ -1,5 +1,6 @@
 package com.prng.aeedee_android_chat.repository
 
+import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.prng.aeedee_android_chat.Payload
@@ -204,7 +205,7 @@ object ChatActivityRepository {
 
     fun updateLists(
         list: List<MessageDataResponse>, ids: MutableList<String>,
-        isClear: Boolean, adapter: MessageItemListAdapter,
+        isClear: Boolean, adapter: MessageItemListAdapter, activity: Activity,
         onResult: (List<MessageDataResponse>) -> Unit
     ) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -215,6 +216,9 @@ object ChatActivityRepository {
                             list[i].status = if (!isClear) 0 else 1
                             list[i].isSelectEnable = false
                             adapter.updateData(i, list = list[i])
+                            activity.runOnUiThread(Runnable {
+                                // UI code goes here
+                            })
                             adapter.notifyItemChanged(i, Payload.Update.name)
                         }
                     }

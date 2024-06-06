@@ -10,6 +10,7 @@ import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import androidx.room.TypeConverters
 import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageData
+import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageModel
 import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseUsersModel
 import com.prng.aeedee_android_chat.util.ListConverter
 
@@ -31,22 +32,21 @@ interface ChatDao {
         insertUsersAll(users)
     }
 
-    @Query("select * from DatabaseMessageModel")
+    //.........................................................................
+
+    @Query("select * from DatabaseMessageData")
     fun getMessageAll(): LiveData<List<DatabaseMessageData>?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertMessageAll(messages: List<DatabaseMessageData>)
-
-    //..........................................................................
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessageDataUsers(databaseMessageData: DatabaseMessageData)
 
+    @Query("UPDATE DatabaseMessageModel SET status = 0 WHERE uniqueId IN (:uniqueIds)")
+    fun updateStatusForUniqueIds(uniqueIds: List<String>)
 }
 
 @Database(
-    entities = [DatabaseUsersModel::class, DatabaseMessageData::class],
-    version = 1,
-    exportSchema = false
+    entities = [DatabaseUsersModel::class, DatabaseMessageData::class, DatabaseMessageModel::class],
+    version = 1, exportSchema = false
 )
 @TypeConverters(ListConverter::class)
 abstract class ChatDatabase : RoomDatabase() {

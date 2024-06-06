@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataUsers
 
-@Entity(tableName = "DatabaseMessageModel")
+@Entity(tableName = "DatabaseMessageData")
 data class DatabaseMessageData(
     @PrimaryKey val _id: String,
     @ColumnInfo(name = "receiverId") val receiverId: String,

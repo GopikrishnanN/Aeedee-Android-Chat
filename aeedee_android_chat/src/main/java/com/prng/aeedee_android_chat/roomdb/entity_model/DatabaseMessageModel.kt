@@ -1,13 +1,16 @@
 package com.prng.aeedee_android_chat.roomdb.entity_model
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseFileData
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
 import com.prng.aeedee_android_chat.view.chat_message.model.message.FileData
 
+@Entity(tableName = "DatabaseMessageModel")
 data class DatabaseMessageModel(
-    val _id: String,
+    @PrimaryKey val _id: String,
     @SerializedName("userId") val userId: String,
     @SerializedName("unique_id") val uniqueId: String? = "",
     @SerializedName("receiverId") val receiverId: String,

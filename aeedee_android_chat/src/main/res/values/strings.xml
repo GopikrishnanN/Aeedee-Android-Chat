@@ -23,5 +23,6 @@
     <string name="cancel_text">Cancel</string>
 
     <string name="regular_text_view">Regular TextView %s</string>
+    <string name="forward_to_title">Forward to…</string>
 
 </resources>

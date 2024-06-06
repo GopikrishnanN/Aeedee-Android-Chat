@@ -7,28 +7,57 @@
 
         <variable
             name="viewModel"
-            type="com.prng.aeedee_android_chat.view.chat.ChatUserListViewModel" />
+            type="com.prng.aeedee_android_chat.view.forward_chat.ForwardUsersViewModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#EAEAEA"
-        tools:context=".view.chat.ChatUserListActivity">
+        android:background="@color/white"
+        tools:context=".view.forward_chat.ForwardUsersActivity">
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/atvChatTitle"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clAppBar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:paddingHorizontal="10dp"
-            android:text="@string/chats_text"
-            android:textColor="@color/black"
-            android:textSize="25sp"
-            android:textStyle="bold"
+            android:layout_height="70dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/aivBack"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:padding="15dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/ic_back_icon" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/atvName"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="10dp"
+                android:singleLine="true"
+                android:text="@string/forward_to_title"
+                android:textColor="#393939"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toBottomOf="@+id/aivBack"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/aivBack"
+                app:layout_constraintTop_toTopOf="@id/aivBack" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#eaeaea"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/clSearch"
@@ -36,9 +65,10 @@
             android:layout_height="48dp"
             android:layout_margin="10dp"
             android:background="@drawable/search_corner_curve_edit_bg"
+            android:backgroundTint="#eaeaea"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/atvChatTitle">
+            app:layout_constraintTop_toBottomOf="@+id/clAppBar">
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/aivSearchIcon"
@@ -51,7 +81,6 @@
                 app:srcCompat="@drawable/ic_search_icon" />
 
             <androidx.appcompat.widget.AppCompatEditText
-                android:id="@+id/aetSearchUser"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:background="@null"
@@ -75,7 +104,8 @@
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/srlRefreshData"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toTopOf="@+id/clBottomSend"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/clSearch">
@@ -94,62 +124,58 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    tools:itemCount="7"
-                    tools:listitem="@layout/chat_user_list_item_layout" />
+                    tools:itemCount="6"
+                    tools:listitem="@layout/forward_user_item_layout" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/clEmpty"
+            android:id="@+id/clBottomSend"
             android:layout_width="match_parent"
-            android:layout_height="400dp"
+            android:layout_height="60dp"
+            android:background="@color/white"
+            android:elevation="12dp"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/clSearch">
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/atvSelectedItems"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:ellipsize="none"
+                android:gravity="center_vertical"
+                android:isScrollContainer="true"
+                android:scrollbars="horizontal"
+                android:singleLine="true"
+                android:text=""
+                android:textColor="@color/black"
+                android:textIsSelectable="true"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/aivSend"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/aivChatIcon"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
+                android:id="@+id/aivSend"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/send_oval_bg"
+                android:paddingStart="5dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="9dp"
+                android:tint="@color/white"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.26" />
-
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/atbStartAChat"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="-20dp"
-                android:background="@drawable/btn_start_a_chat_bg"
-                android:paddingHorizontal="30dp"
-                android:text="@string/start_a_chat_text"
-                android:textAllCaps="false"
-                android:textColor="@color/white"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/aivChatIcon" />
+                app:srcCompat="@drawable/ic_send_icon" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fabAddUser"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="20dp"
-            android:layout_marginBottom="20dp"
-            android:backgroundTint="@color/white"
-            android:contentDescription="@string/add_followers"
-            android:src="@drawable/ic_fab_chat_icon"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:shapeAppearanceOverlay="@style/fab_user_chat"
-            app:tint="@color/blue" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 </layout>
