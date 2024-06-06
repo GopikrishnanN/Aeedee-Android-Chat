@@ -39,7 +39,11 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     }
 
     fun addData(list: MessageDataResponse) {
-        (mList as ArrayList).add(list)
+        if (mList!!.isNotEmpty()) {
+            (mList as ArrayList).add(list)
+        } else {
+            mList = arrayListOf(list)
+        }
     }
 
     fun updateData(position: Int, list: MessageDataResponse) {

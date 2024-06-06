@@ -308,6 +308,7 @@ class ChatActivity : AppCompatActivity() {
                         mViewModel.addDateTime(it, null)
                     }
                     mAdapter.addData(processedData)
+                    mActivityBinding.aivNoMessageIcon.gone()
                     setDbResponse(arrayListOf(processedData), false)
 
                     val recyclerViewState = onSaveInstanceRV()
