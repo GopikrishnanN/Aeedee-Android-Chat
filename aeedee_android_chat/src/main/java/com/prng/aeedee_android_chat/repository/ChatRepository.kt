@@ -54,6 +54,8 @@ object ChatRepository {
 
     var onDeleteMessageUpdateListener: ((DeleteMessageRequest) -> Unit)? = null
 
+    var onReactionMessageUpdateListener: ((DatabaseReactionData) -> Unit)? = null
+
     fun initSocket(activity: Activity) {
         mActivity = activity
         try {
@@ -193,9 +195,11 @@ object ChatRepository {
                 timezone = json.getOrDefault("timezone", String()),
                 msgType = json.getString("msgType"),
                 link = json.getString("link"),
+                chat_type = json.getOrDefault("chat_type", String()),
                 files = jsonArrayToFileDataList(json.getJSONArray("files")),
                 createdAt = json.getString("createdAt"),
                 updatedAt = json.getString("updatedAt"),
+                originId = json.getOrDefault("userId", String()),
             )
             onNewMessageListener?.invoke(response)
             onRefreshListListener?.invoke(true)
@@ -256,6 +260,7 @@ object ChatRepository {
             val data = JSONObject(args[0].toString()).toDataClass<DatabaseReactionData?>()
             if (data != null) {
                 onReactionDataListener?.invoke(data)
+                onReactionMessageUpdateListener?.invoke(data)
             }
         }
     }

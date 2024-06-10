@@ -80,6 +80,8 @@ object ChatActivityRepository {
             override fun onResponse(
                 call: Call<MessageListResponse>, response: Response<MessageListResponse>
             ) {
+                Log.v("DEBUG : recent-${request.recent}--", response.body().toString())
+
                 val data = response.body()
 
                 chatSetterGetter.value = data
@@ -216,10 +218,9 @@ object ChatActivityRepository {
                             list[i].status = if (!isClear) 0 else 1
                             list[i].isSelectEnable = false
                             adapter.updateData(i, list = list[i])
-                            activity.runOnUiThread(Runnable {
-                                // UI code goes here
-                            })
-                            adapter.notifyItemChanged(i, Payload.Update.name)
+                            activity.runOnUiThread {
+                                adapter.notifyItemChanged(i, Payload.Update.name)
+                            }
                         }
                     }
                 }

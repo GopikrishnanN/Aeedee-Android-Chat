@@ -117,18 +117,22 @@ fun setVisibility(view: View, isVisible: Boolean) {
 @BindingAdapter("android:visibilityReaction")
 fun setVisibilityReaction(view: AppCompatTextView, data: MutableList<DatabaseReactionData>?) {
     if (data != null) {
-        val sb = StringBuilder()
         if (data.isNotEmpty()) {
-            val size = data.size
-            for (i in data.indices) {
-                sb.append(data[i].message)
-                if ((size - 1) != i) sb.append(" ")
-                if (size > 1 && (size - 1) == i) sb.append(size.toString())
-                view.visible()
-                animateEmoji(view)
-            }
-            view.text = sb.toString()
+            view.text = data.first().message
+//            animateEmoji(view)
         } else view.gone()
+//        val sb = StringBuilder()
+//        if (data.isNotEmpty()) {
+//            val size = data.size
+//            for (i in data.indices) {
+//                sb.append(data[i].message)
+//                if ((size - 1) != i) sb.append(" ")
+//                if (size > 1 && (size - 1) == i) sb.append(size.toString())
+//                view.visible()
+//                animateEmoji(view)
+//            }
+//            view.text = sb.toString()
+//        } else view.gone()
     } else view.gone()
 }
 

@@ -8,10 +8,6 @@
         <variable
             name="data"
             type="com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse" />
-
-        <variable
-            name="receiverId"
-            type="com.prng.aeedee_android_chat.util.UserIdData" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -54,82 +50,76 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
-            <!--                app:srcCompat="@{data.isSelected == true ? @drawable/ic_selected_oval_icon : @drawable/ic_unselect_oval_icon}" />-->
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/clOverlayLayout"
+                android:id="@+id/clViewLayout"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_margin="5dp"
-                android:background="@drawable/right_reply_bg"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/clReplyLayout"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="3dp"
-                    android:background="@drawable/top_reply_bg"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
-
-                    <androidx.appcompat.widget.AppCompatTextView
-                        android:id="@+id/atvLeftReplyName"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="5dp"
-                        android:ellipsize="end"
-                        android:gravity="center|start"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="5dp"
-                        android:singleLine="true"
-                        android:text="@{data.replyUserid == receiverId.userId ? receiverId.userName : receiverId.oppositeUserName}"
-                        android:textColor="#252525"
-                        android:textStyle="bold"
-                        app:layout_constraintHeight_min="35dp"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        tools:text="Gopikrishnan" />
-
-                    <androidx.appcompat.widget.AppCompatTextView
-                        android:id="@+id/atvLeftReplyMessage"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="5dp"
-                        android:ellipsize="end"
-                        android:gravity="center|start"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="5dp"
-                        android:singleLine="true"
-                        android:text="@{data.replymsg}"
-                        android:textColor="@color/black"
-                        android:textStyle="italic"
-                        app:layout_constraintHeight_min="35dp"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/atvLeftReplyName"
-                        tools:text="I am Gopkrishnan.." />
-
-                </androidx.constraintlayout.widget.ConstraintLayout>
-
-                <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/clMessageViewLayout"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/right_reply_bottom_curve_bg"
+                    android:layout_margin="5dp"
+                    android:background="@drawable/right_top_curve_bg"
                     android:paddingHorizontal="5dp"
                     android:paddingVertical="5dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/clReplyLayout"
+                    app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintWidth_min="100dp">
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/clForwardLayout"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:id="@+id/aivForward"
+                            android:layout_width="25dp"
+                            android:layout_height="25dp"
+                            android:layout_marginStart="6dp"
+                            android:padding="3dp"
+                            android:tint="@color/white"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:srcCompat="@drawable/ic_forward_icon" />
+
+                        <androidx.appcompat.widget.AppCompatTextView
+                            android:id="@+id/atvForwardText"
+                            android:layout_width="0dp"
+                            android:layout_height="20dp"
+                            android:gravity="center_vertical"
+                            android:paddingHorizontal="5dp"
+                            android:singleLine="true"
+                            android:text="@string/forward_text"
+                            android:textColor="@color/white"
+                            android:textSize="12sp"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toEndOf="@+id/aivForward"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="5dp"
+                            android:layout_marginHorizontal="10dp"
+                            android:layout_marginBottom="-2.5dp"
+                            android:background="@drawable/dotted_line_view"
+                            android:backgroundTint="@color/white"
+                            app:layout_constraintBottom_toBottomOf="parent" />
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
 
                     <androidx.appcompat.widget.AppCompatTextView
                         android:id="@+id/atvRightTextMessage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
                         android:autoLink="web"
                         android:gravity="center|start"
                         android:linksClickable="true"
@@ -139,7 +129,7 @@
                         android:textColorLink="@color/link_blue"
                         android:visibility="@{data.message.length() > 0}"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/clForwardLayout"
                         app:layout_constraintWidth_max="250dp"
                         app:layout_constraintWidth_min="40dp"
                         tools:text="Hi.. www.google.com" />
@@ -172,26 +162,26 @@
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/aivReactionView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="5dp"
+                    android:layout_marginBottom="-23dp"
+                    android:background="@drawable/ic_round_shape_xml"
+                    android:elevation="2dp"
+                    android:gravity="center"
+                    android:minWidth="26dp"
+                    android:paddingHorizontal="1dp"
+                    android:paddingBottom="2dp"
+                    android:text="@{data.getReactionData()}"
+                    android:textSize="16sp"
+                    android:visibility="@{data.getReactionData().length() > 0}"
+                    app:layout_constraintBottom_toBottomOf="@+id/clMessageViewLayout"
+                    app:layout_constraintEnd_toEndOf="@+id/clMessageViewLayout"
+                    tools:text="" />
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/aivReactionView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="3dp"
-                android:layout_marginBottom="-20dp"
-                android:background="@drawable/ic_round_shape_xml"
-                android:elevation="2dp"
-                android:gravity="center"
-                android:minWidth="26dp"
-                android:paddingHorizontal="1dp"
-                android:paddingBottom="2dp"
-                android:text="@{data.getReactionData()}"
-                android:textSize="16sp"
-                android:visibility="@{data.getReactionData().length() > 0}"
-                app:layout_constraintBottom_toBottomOf="@+id/clOverlayLayout"
-                app:layout_constraintEnd_toEndOf="@+id/clOverlayLayout"
-                tools:text="" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -8,6 +8,10 @@
         <variable
             name="data"
             type="com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse" />
+
+        <variable
+            name="receiverId"
+            type="com.prng.aeedee_android_chat.util.UserIdData" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -44,6 +48,7 @@
                 android:layout_height="40dp"
                 android:layout_marginTop="5dp"
                 android:padding="10dp"
+                android:visibility="@{data.isSelectEnable}"
                 app:imageCompat="@{@drawable/ic_selected_oval_icon}"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -78,7 +83,7 @@
                         android:paddingHorizontal="10dp"
                         android:paddingVertical="5dp"
                         android:singleLine="true"
-                        android:text="@{data.replymsg}"
+                        android:text="@{data.replyUserid == receiverId.userId ? receiverId.userName : receiverId.oppositeUserName}"
                         android:textColor="#252525"
                         android:textStyle="bold"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -97,7 +102,7 @@
                         android:paddingHorizontal="10dp"
                         android:paddingVertical="5dp"
                         android:singleLine="true"
-                        android:text="@{data.message}"
+                        android:text="@{data.replymsg}"
                         android:textColor="@color/black"
                         android:textStyle="italic"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -133,7 +138,6 @@
                 android:id="@+id/aivReactionView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="3dp"
                 android:layout_marginBottom="-20dp"
                 android:background="@drawable/ic_round_shape_xml"
                 android:elevation="2dp"
@@ -141,8 +145,9 @@
                 android:minWidth="26dp"
                 android:paddingHorizontal="1dp"
                 android:paddingBottom="2dp"
+                android:text="@{data.getReactionData()}"
                 android:textSize="16sp"
-                android:visibilityReaction="@{data.reaction}"
+                android:visibility="@{data.getReactionData().length() > 0}"
                 app:layout_constraintBottom_toBottomOf="@+id/clOverlayLayout"
                 app:layout_constraintStart_toStartOf="@+id/clOverlayLayout"
                 app:layout_constraintTop_toBottomOf="@+id/clOverlayLayout"

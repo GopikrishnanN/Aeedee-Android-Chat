@@ -69,6 +69,7 @@ object SocketHandler {
                 Log.e("TAG", "sslSocket: " + opts.query)
                 opts.callFactory = okHttpClient
                 opts.webSocketFactory = okHttpClient
+                opts.reconnection = true
                 mSocket = IO.socket(socketUrl, opts)
 
             } catch (e: URISyntaxException) {

@@ -9,6 +9,8 @@ import androidx.room.Query
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import androidx.room.TypeConverters
+import androidx.room.Update
+import com.prng.aeedee_android_chat.roomdb.db_model.ParentWithChildren
 import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageData
 import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageModel
 import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseUsersModel
@@ -40,8 +42,26 @@ interface ChatDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessageDataUsers(databaseMessageData: DatabaseMessageData)
 
-    @Query("UPDATE DatabaseMessageModel SET status = 0 WHERE uniqueId IN (:uniqueIds)")
-    fun updateStatusForUniqueIds(uniqueIds: List<String>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChildren(children: List<DatabaseMessageModel>)
+
+    @Transaction
+    @Update
+    suspend fun updateParentWithChildren(
+        parent: DatabaseMessageData, children: List<DatabaseMessageModel>
+    ) {
+        insertMessageDataUsers(parent)
+        insertChildren(children)
+    }
+
+    @Query("SELECT * FROM DatabaseMessageData WHERE originId = :parentId")
+    suspend fun getParentWithChildren(parentId: String): ParentWithChildren
+
+    @Update
+    suspend fun updateParent(children: DatabaseMessageData)
+
+    @Update
+    suspend fun updateChildren(children: DatabaseMessageModel)
 }
 
 @Database(

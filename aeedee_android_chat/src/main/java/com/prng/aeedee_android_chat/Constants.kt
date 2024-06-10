@@ -50,6 +50,8 @@ var userID = "65f2d9b84c342fb51e72343f"
 //var userID = "664ca37f1cabc43f39b51ba4"
 //var userID = "65ddbed3f98eadc6bee76361"
 
+var userName = "Nitheesh Kumar"
+
 // Layout Size
 const val wrapContent = WindowManager.LayoutParams.WRAP_CONTENT
 const val matchParent = WindowManager.LayoutParams.MATCH_PARENT
@@ -67,7 +69,7 @@ enum class Payload {
 }
 
 // Local Emoji List
-val emojiList = arrayListOf("😂", "😄", "😍", "😨", "😔", "😡", "+")
+val emojiList = arrayListOf("😂", "😄", "😍", "😨", "😔", "😡"/*, "+"*/)
 
 // Local Message Menu List
 val messageMenuList = arrayListOf(

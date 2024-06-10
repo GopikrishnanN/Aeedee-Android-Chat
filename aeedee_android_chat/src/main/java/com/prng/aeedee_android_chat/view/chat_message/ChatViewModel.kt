@@ -37,6 +37,7 @@ import com.prng.aeedee_android_chat.messageMenuList
 import com.prng.aeedee_android_chat.msgDateTimeConvert
 import com.prng.aeedee_android_chat.repository.ChatActivityRepository
 import com.prng.aeedee_android_chat.repository.ChatRepository
+import com.prng.aeedee_android_chat.roomdb.deo.ChatDao
 import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.toast
 import com.prng.aeedee_android_chat.userID
@@ -73,7 +74,6 @@ import java.util.Date
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
-import kotlin.reflect.KVisibility
 
 class ChatViewModel : ViewModel() {
 
@@ -214,12 +214,12 @@ class ChatViewModel : ViewModel() {
 
     // Api Request and Response Chat List Data
     fun getChatUserList(request: MessageRequest): LiveData<MessageListResponse> {
-        return ChatActivityRepository.getChatListApiCall(auth, userId, request)
+        return ChatActivityRepository.getChatListApiCall(auth, userID, request)
     }
 
     // Api Request and Response Upload Image
     fun uploadImageApi(request: ImageUploadRequest): LiveData<ImageUploadResponse> {
-        return ChatActivityRepository.uploadImageApi(auth, userId, request)
+        return ChatActivityRepository.uploadImageApi(auth, userID, request)
     }
 
     // Send message Api Request and Response Data
@@ -288,7 +288,7 @@ class ChatViewModel : ViewModel() {
     private val inputFinishChecker = Runnable {
         if (System.currentTimeMillis() > lastTextEdit + delay - 500) {
             isTyping = false
-            ChatRepository.emitStartStop(false, sendTyping(receiverId, userId))
+            ChatRepository.emitStartStop(false, sendTyping(receiverId, userID))
         }
     }
 
@@ -443,6 +443,7 @@ class ChatViewModel : ViewModel() {
             updatedAt = getCurrentDateTime(),
             chat_type = "",
             timezone = getTimeZone(),
+            originId = receiverId,
         )
 
         msgType = MessageType.Normal.name.lowercase(Locale.getDefault())
@@ -502,13 +503,13 @@ class ChatViewModel : ViewModel() {
         sJSONObject.put("unique_id", uniqueId)
         sJSONObject.put("message", message)
         sJSONObject.put("status", 1)
-        sJSONObject.put("link", "")
+        sJSONObject.put("link", getFistLink(getMessageText()))
         sJSONObject.put("files", JSONArray(Gson().toJson(mediaFiles)))
-
         sJSONObject.put("msgType", msgType)
         sJSONObject.put("repliedId", repliedId)
         sJSONObject.put("replymsg", replymsg)
         sJSONObject.put("timezone", getTimeZone())
+
         Log.e("TAG", "messages...: $sJSONObject")
         return sJSONObject
     }
@@ -711,4 +712,36 @@ class ChatViewModel : ViewModel() {
         ChatActivityRepository.updateLists(list, ids, isClear, adapter, activity, onResult)
     }
 
+    fun updateChildEntityInParent(chatDao: ChatDao, childId: String, ifData: Int) =
+        CoroutineScope(Dispatchers.IO).launch {
+
+            val parentWithChildren = chatDao.getParentWithChildren(receiverId)
+
+            if (parentWithChildren != null) {
+                if (parentWithChildren.children != null) {
+                    val childToUpdate =
+                        parentWithChildren.children.find { it.uniqueId == childId }
+
+                    if (ifData == 3)
+                        childToUpdate?.readStatus = 3
+
+                    if (childToUpdate != null) {
+                        chatDao.updateChildren(childToUpdate)
+
+                        val index =
+                            parentWithChildren.children.indexOfFirst { it.uniqueId == childId }
+                        val childrenList = parentWithChildren.children.toMutableList()
+                        if (index > -1) {
+                            val parentToUpdate = parentWithChildren.parent
+                            childrenList[index] = childToUpdate
+                            parentToUpdate?.let {
+                                it.receiverId = receiverId
+                                it.response = childrenList
+                                chatDao.updateParent(it)
+                            }
+                        }
+                    }
+                }
+            }
+        }
 }

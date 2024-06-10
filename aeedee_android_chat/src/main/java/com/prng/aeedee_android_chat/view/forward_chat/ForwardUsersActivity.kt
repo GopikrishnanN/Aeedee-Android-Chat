@@ -1,6 +1,7 @@
 package com.prng.aeedee_android_chat.view.forward_chat
 
 import android.annotation.SuppressLint
+import android.os.Build
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import androidx.activity.viewModels
@@ -13,15 +14,21 @@ import com.prng.aeedee_android_chat.isNetworkConnection
 import com.prng.aeedee_android_chat.toast
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.UserDataResponse
+import com.prng.aeedee_android_chat.view.chat_message.ChatActivity
+import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
 import com.prng.aeedee_android_chat.view.forward_chat.adapter.ForwardUsersItemAdapter
 import com.prng.aeedee_android_chat.visible
-
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ForwardUsersActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityForwardUsersBinding
     private val mViewModel: ForwardUsersViewModel by viewModels()
     private lateinit var mAdapter: ForwardUsersItemAdapter
+
+    private var mMessageData: MessageDataResponse? = null
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,10 +39,49 @@ class ForwardUsersActivity : AppCompatActivity() {
         binding.viewModel = mViewModel
         binding.lifecycleOwner = this
 
+        getIntentData()
+
         mAdapter = ForwardUsersItemAdapter()
         binding.rvChatUserList.adapter = mAdapter
 
         binding.atvSelectedItems.movementMethod = ScrollingMovementMethod()
+
+        val request = ChatUserRequest(limit = 50)
+        fetchUserList(request)
+
+        onClickListener()
+    }
+
+    private fun getIntentData() {
+        if (intent.hasExtra("data"))
+            mMessageData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra("data", MessageDataResponse::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra("data")
+            }
+
+        mViewModel.initData(mMessageData)
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun onClickListener() {
+        binding.aivBack.setOnClickListener {
+            finish()
+        }
+
+        binding.aivSend.setOnClickListener {
+            sendForwardData(mAdapter.getSelectedItems())
+        }
+
+        mViewModel.onSearchListener = {
+
+        }
+
+        mViewModel.onCloseActivity = {
+            ChatActivity.mActivity?.finish()
+            finish()
+        }
 
         mAdapter.onItemClick = { isSelected ->
             if (isSelected) {
@@ -53,9 +99,14 @@ class ForwardUsersActivity : AppCompatActivity() {
                 }
             }
         }
+    }
 
-        val request = ChatUserRequest(limit = 50)
-        fetchUserList(request)
+    private fun sendForwardData(sItems: List<UserDataResponse>) {
+        CoroutineScope(Dispatchers.IO).launch {
+            sItems.forEachIndexed { index, user ->
+                mViewModel.emitSendMessage(user.userId.toString(), ((sItems.size - 1) == index))
+            }
+        }
     }
 
     private fun fetchUserList(request: ChatUserRequest) {

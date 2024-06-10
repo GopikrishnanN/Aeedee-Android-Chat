@@ -4,11 +4,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.prng.aeedee_android_chat.R
 import com.prng.aeedee_android_chat.databinding.ChatUserListItemLayoutBinding
+import com.prng.aeedee_android_chat.util.UserListDiffCallback
 import com.prng.aeedee_android_chat.view.chat.model.UserDataResponse
 import kotlinx.android.extensions.LayoutContainer
 
@@ -20,6 +22,19 @@ class ChatUserListAdapter : RecyclerView.Adapter<ChatUserListAdapter.ViewHolder>
 
     fun setData(list: List<UserDataResponse>) {
         mList = list
+    }
+
+    fun updateList(newList: List<UserDataResponse>) {
+        val diffCallback = UserListDiffCallback(mList!!, newList)
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
+
+        if (mList!!.isNotEmpty()) {
+            (mList as ArrayList).clear()
+            (mList as ArrayList).addAll(newList)
+        } else {
+            mList = newList
+        }
+        diffResult.dispatchUpdatesTo(this)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -40,6 +55,9 @@ class ChatUserListAdapter : RecyclerView.Adapter<ChatUserListAdapter.ViewHolder>
         binding.clUserChat.setOnClickListener {
             onItemClick?.invoke(mList!![position])
         }
+        
+        holder.itemView.animate().alpha(1f).translationY(0f).setDuration(300).start()
+
         Glide.with(binding.root.context).load(mList!![position].avatar)
             .apply(
                 RequestOptions()

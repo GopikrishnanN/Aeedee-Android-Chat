@@ -8,8 +8,8 @@ import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataUsers
 @Entity(tableName = "DatabaseMessageData")
 data class DatabaseMessageData(
     @PrimaryKey val _id: String,
-    @ColumnInfo(name = "receiverId") val receiverId: String,
-    @ColumnInfo(name = "response") val response: List<DatabaseMessageModel>,
+    @ColumnInfo(name = "originId") var receiverId: String,
+    @ColumnInfo(name = "response") var response: List<DatabaseMessageModel>,
 )
 
 fun List<DatabaseMessageData>.asDatabaseModel(): List<MessageDataUsers> {
@@ -23,6 +23,7 @@ fun List<DatabaseMessageData>.asDatabaseModel(): List<MessageDataUsers> {
                     userId = data.userId,
                     uniqueId = data.uniqueId,
                     receiverId = data.receiverId,
+                    originId = data.originId,
                     readStatus = data.readStatus,
                     message = data.message,
                     updatedAt = data.updatedAt,
@@ -35,7 +36,9 @@ fun List<DatabaseMessageData>.asDatabaseModel(): List<MessageDataUsers> {
                     msgType = data.msgType,
                     repliedId = data.repliedId,
                     replyMsg = data.replyMsg,
+                    replyUserid = data.replyUserid,
                     timezone = data.timezone,
+                    chatType = data.chatType,
                     reaction = data.reaction,
                 )
             }

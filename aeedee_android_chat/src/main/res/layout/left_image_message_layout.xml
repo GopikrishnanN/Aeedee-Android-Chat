@@ -153,8 +153,9 @@
                     android:minWidth="26dp"
                     android:paddingHorizontal="1dp"
                     android:paddingBottom="2dp"
+                    android:text="@{data.getReactionData()}"
                     android:textSize="16sp"
-                    android:visibilityReaction="@{data.reaction}"
+                    android:visibility="@{data.getReactionData().length() > 0}"
                     app:layout_constraintBottom_toBottomOf="@+id/atvLeftTextMessage"
                     app:layout_constraintStart_toStartOf="@+id/atvLeftTextMessage"
                     tools:text="" />

@@ -1,5 +1,6 @@
 package com.prng.aeedee_android_chat.view.chat_message.adapter
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,15 +10,18 @@ import androidx.swiperefreshlayout.widget.CircularProgressDrawable
 import com.bumptech.glide.Glide
 import com.prng.aeedee_android_chat.R
 import com.prng.aeedee_android_chat.databinding.LeftDeletedMessageLayoutBinding
+import com.prng.aeedee_android_chat.databinding.LeftForwardMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.LeftImageMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.LeftReplyMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.LeftTextMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightDeletedMessageLayoutBinding
+import com.prng.aeedee_android_chat.databinding.RightForwardMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightImageMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightReplyMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightTextMessageLayoutBinding
 import com.prng.aeedee_android_chat.gone
 import com.prng.aeedee_android_chat.setConstraintLayoutWidthToPercent
+import com.prng.aeedee_android_chat.util.UserIdData
 import com.prng.aeedee_android_chat.view.chat_message.ChatActivity
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.message.FileData
@@ -33,6 +37,8 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     var onSelectionClickListener: ((Boolean) -> Unit)? = null
 
     var isSelection: Boolean = false
+
+    private var mUserData: UserIdData? = null
 
     fun setData(list: List<MessageDataResponse>) {
         mList = list
@@ -66,11 +72,17 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         (mList as ArrayList)[index] = data
     }
 
+    fun setUserData(userData: UserIdData) {
+        mUserData = userData
+    }
+
     override fun getItemViewType(position: Int): Int {
         val data = mList!![position]
         val isLeftMessage = data.userId != ChatActivity.userId
 
-        return if (!isLeftMessage && data.status == 0) 7 // Right Deleted
+        return if (!isLeftMessage && data.chat_type == "forward") 9 // Right Forward
+        else if (isLeftMessage && data.chat_type == "forward") 8 // Left Forward
+        else if (!isLeftMessage && data.status == 0) 7 // Right Deleted
         else if (isLeftMessage && data.status == 0) 6 // Left Deleted
         else if (!isLeftMessage && getFileStatus(data.files)) 5 // Right Images
         else if (isLeftMessage && getFileStatus(data.files)) 4 // Left Images
@@ -142,11 +154,25 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 LeftDeleteViewHolder(bindingRight)
             }
 
-            else -> {
+            7 -> {
                 val bindingRight = RightDeletedMessageLayoutBinding.inflate(
                     inflater, parent, false
                 )
                 RightDeleteViewHolder(bindingRight)
+            }
+
+            8 -> {
+                val bindingRight = LeftForwardMessageLayoutBinding.inflate(
+                    inflater, parent, false
+                )
+                LeftForwardViewHolder(bindingRight)
+            }
+
+            else -> {
+                val bindingRight = RightForwardMessageLayoutBinding.inflate(
+                    inflater, parent, false
+                )
+                RightForwardViewHolder(bindingRight)
             }
         }
     }
@@ -199,6 +225,16 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     holder.itemBinding.data = mList!![position]
                     holder.itemBinding.executePendingBindings()
                 }
+
+                is LeftForwardViewHolder -> {
+                    holder.itemBinding.data = mList!![position]
+                    holder.itemBinding.executePendingBindings()
+                }
+
+                is RightForwardViewHolder -> {
+                    holder.itemBinding.data = mList!![position]
+                    holder.itemBinding.executePendingBindings()
+                }
             }
         } else {
             super.onBindViewHolder(holder, position, payloads)
@@ -210,7 +246,15 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is LeftTextViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-                binding.executePendingBindings()
+//                binding.executePendingBindings()
+
+                binding.clLeftTexLayout.setOnLongClickListener {
+                    if (!isSelection) {
+                        onLongClickListener?.invoke(mList!![position], binding.clLeftTextMessage)
+                    }
+                    return@setOnLongClickListener true
+                }
+
                 binding.atvLeftTextMessage.setOnLongClickListener {
                     if (!isSelection) {
                         onLongClickListener?.invoke(mList!![position], binding.clLeftTextMessage)
@@ -234,7 +278,8 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is RightTextViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-                binding.executePendingBindings()
+//                binding.executePendingBindings()
+
                 binding.clMessageViewLayout.setOnLongClickListener {
                     if (!isSelection) {
                         onLongClickListener?.invoke(mList!![position], binding.clViewLayout)
@@ -258,7 +303,10 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is LeftReplyViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-                binding.executePendingBindings()
+                binding.receiverId = mUserData
+
+                Log.e("TAG", "onBindViewHolder:receiverId ${mList!![position].replyUserid}")
+//                binding.executePendingBindings()
 
                 setConstraintLayoutWidthToPercent(binding.root.context, binding.clOverlayLayout)
 
@@ -285,7 +333,10 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is RightReplyViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-                binding.executePendingBindings()
+                binding.receiverId = mUserData
+
+                Log.e("TAG", "onBindViewHolder:receiverId ${mList!![position].replyUserid}")
+//                binding.executePendingBindings()
 
                 setConstraintLayoutWidthToPercent(binding.root.context, binding.clOverlayLayout)
 
@@ -312,7 +363,7 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is LeftImageViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-                binding.executePendingBindings()
+//                binding.executePendingBindings()
 
                 binding.clMessageLayout.setOnLongClickListener {
                     if (!isSelection) {
@@ -380,7 +431,7 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is RightImageViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-                binding.executePendingBindings()
+//                binding.executePendingBindings()
 
                 binding.clMessageLayout.setOnLongClickListener {
                     if (!isSelection) {
@@ -456,24 +507,76 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 binding.data = mList!![position]
                 binding.executePendingBindings()
             }
+
+            is LeftForwardViewHolder -> {
+                val binding = holder.itemBinding
+                binding.data = mList!![position]
+
+                binding.clLeftTexLayout.setOnLongClickListener {
+                    if (!isSelection) {
+                        onLongClickListener?.invoke(mList!![position], binding.clLeftTextMessage)
+                    }
+                    return@setOnLongClickListener true
+                }
+
+                binding.clSelectionLayout.setOnClickListener {
+                    if (isSelection) {
+                        selectionMessage(binding.aivSelectMessage, position)
+                    }
+                }
+
+                binding.atvLeftTextMessage.setOnClickListener {
+                    if (isSelection) {
+                        selectionMessage(binding.aivSelectMessage, position)
+                    }
+                }
+            }
+
+            is RightForwardViewHolder -> {
+                val binding = holder.itemBinding
+                binding.data = mList!![position]
+
+                binding.clMessageViewLayout.setOnLongClickListener {
+                    if (!isSelection) {
+                        onLongClickListener?.invoke(mList!![position], binding.clViewLayout)
+                    }
+                    return@setOnLongClickListener true
+                }
+
+                binding.clSelectionLayout.setOnClickListener {
+                    if (isSelection) {
+                        selectionMessage(binding.aivSelectMessage, position)
+                    }
+                }
+
+                binding.clMessageViewLayout.setOnClickListener {
+                    if (isSelection) {
+                        selectionMessage(binding.aivSelectMessage, position)
+                    }
+                }
+            }
         }
     }
 
+    // Left Text
     class LeftTextViewHolder(var itemBinding: LeftTextMessageLayoutBinding) :
         RecyclerView.ViewHolder(itemBinding.root), LayoutContainer {
         override val containerView: View get() = itemBinding.root
     }
 
+    // Right Text
     class RightTextViewHolder(var itemBinding: RightTextMessageLayoutBinding) :
         RecyclerView.ViewHolder(itemBinding.root), LayoutContainer {
         override val containerView: View get() = itemBinding.root
     }
 
+    // Left Reply
     class LeftReplyViewHolder(var itemBinding: LeftReplyMessageLayoutBinding) :
         RecyclerView.ViewHolder(itemBinding.root), LayoutContainer {
         override val containerView: View get() = itemBinding.root
     }
 
+    // Right Reply
     class RightReplyViewHolder(var itemBinding: RightReplyMessageLayoutBinding) :
         RecyclerView.ViewHolder(itemBinding.root), LayoutContainer {
         override val containerView: View get() = itemBinding.root
@@ -499,6 +602,18 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     // Right Images
     class RightDeleteViewHolder(var itemBinding: RightDeletedMessageLayoutBinding) :
+        RecyclerView.ViewHolder(itemBinding.root), LayoutContainer {
+        override val containerView: View get() = itemBinding.root
+    }
+
+    // Left Forward
+    class LeftForwardViewHolder(var itemBinding: LeftForwardMessageLayoutBinding) :
+        RecyclerView.ViewHolder(itemBinding.root), LayoutContainer {
+        override val containerView: View get() = itemBinding.root
+    }
+
+    // Right Forward
+    class RightForwardViewHolder(var itemBinding: RightForwardMessageLayoutBinding) :
         RecyclerView.ViewHolder(itemBinding.root), LayoutContainer {
         override val containerView: View get() = itemBinding.root
     }

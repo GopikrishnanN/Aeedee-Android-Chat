@@ -18,7 +18,9 @@ fun List<MessageDataUsers>.asDatabaseModel(): List<DatabaseMessageData> {
                 DatabaseMessageModel(
                     _id = data._id,
                     userId = data.userId,
+                    uniqueId = data.uniqueId,
                     receiverId = data.receiverId,
+                    originId = data.originId,
                     readStatus = data.readStatus,
                     message = data.message,
                     updatedAt = data.updatedAt,
@@ -31,6 +33,8 @@ fun List<MessageDataUsers>.asDatabaseModel(): List<DatabaseMessageData> {
                     msgType = data.msgType,
                     repliedId = data.repliedId,
                     replyMsg = data.replyMsg,
+                    replyUserid = data.replyUserid,
+                    chatType = data.chatType,
                     timezone = data.timezone,
                     reaction = data.reaction,
                 )

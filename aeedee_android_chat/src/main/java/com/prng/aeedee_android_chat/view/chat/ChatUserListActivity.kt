@@ -1,16 +1,21 @@
 package com.prng.aeedee_android_chat.view.chat
 
 import android.content.Intent
+import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.map
+import androidx.recyclerview.widget.DefaultItemAnimator
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.prng.aeedee_android_chat.R
 import com.prng.aeedee_android_chat.databinding.ActivityChatUserListBinding
@@ -43,6 +48,8 @@ class ChatUserListActivity : AppCompatActivity() {
     private lateinit var database: ChatDatabase
     private lateinit var chatDao: ChatDao
 
+    private var isPause: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityChatUserListBinding.inflate(layoutInflater)
@@ -62,6 +69,13 @@ class ChatUserListActivity : AppCompatActivity() {
 
         mAdapter = ChatUserListAdapter()
         binding.rvChatUserList.adapter = mAdapter
+        binding.rvChatUserList.itemAnimator = DefaultItemAnimator()
+
+        binding.rvChatUserList.layoutManager = LinearLayoutManager(applicationContext).apply {
+            isSmoothScrollbarEnabled = true
+        }
+
+        binding.rvChatUserList.addItemDecoration(CustomItemDecoration())
 
         mViewModel.initSocket(this)
 
@@ -70,6 +84,17 @@ class ChatUserListActivity : AppCompatActivity() {
         onClickOperation()
 
         dbUpdateData()
+    }
+
+    class CustomItemDecoration : RecyclerView.ItemDecoration() {
+
+        private val decorationValue = 10
+
+        override fun getItemOffsets(
+            outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State
+        ) {
+            outRect.set(decorationValue, decorationValue, decorationValue, decorationValue)
+        }
     }
 
     private fun setUserId() {
@@ -102,10 +127,18 @@ class ChatUserListActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        isPause = true
+        mViewModel.mSearchText = ""
+        binding.aetSearchUser.setText("")
+    }
+
     override fun onResume() {
         super.onResume()
-        binding.aetSearchUser.setText("")
-        mViewModel.mSearchText = ""
+        Handler(Looper.myLooper()!!).postDelayed({
+            isPause = false
+        }, 200)
         val request = ChatUserRequest(limit = 50)
         fetchUserList(request)
     }
@@ -128,6 +161,7 @@ class ChatUserListActivity : AppCompatActivity() {
         } else {
             mViewModel.getChatUserList(request)?.observe(this) {
                 if (it != null) {
+                    binding.srlRefreshData.isRefreshing = false
                     lifecycleScope.launch {
                         chatDao.replaceUsers(it.response.asDatabaseModel())
                     }
@@ -140,12 +174,12 @@ class ChatUserListActivity : AppCompatActivity() {
         if (response.isNotEmpty()) {
             binding.clEmpty.gone()
             binding.fabAddUser.show()
-            mAdapter.setData(response)
+            mAdapter.updateList(response)
             mAdapter.notifyDataSetChanged()
         } else {
             noChatGifImage()
             binding.clEmpty.visible()
-            mAdapter.setData(arrayListOf())
+            mAdapter.updateList(arrayListOf())
             mAdapter.notifyDataSetChanged()
             binding.fabAddUser.hide()
         }
@@ -175,13 +209,20 @@ class ChatUserListActivity : AppCompatActivity() {
         }
 
         mViewModel.onSearchListener = {
-            fetchUserList(it)
+            if (!isPause)
+                fetchUserList(it)
         }
 
-        mViewModel.onDeleteMessageListener = {
-            lifecycleScope.launch {
-                chatDao.updateStatusForUniqueIds(it.ids!!)
+        mViewModel.onDeleteMessageListener = { deletedIds ->
+            deletedIds.ids?.forEach { id ->
+                mViewModel.updateChildEntityInParent(chatDao, deletedIds.user_id.toString(), id, 1)
             }
+        }
+
+        mViewModel.onReactionMessageListener = { data ->
+            mViewModel.updateChildEntityInParent(
+                chatDao, data.userId.toString(), data.messageId.toString(), 2, data
+            )
         }
 
     }

@@ -1,11 +1,13 @@
 package com.prng.aeedee_android_chat.view.chat_message
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -14,6 +16,7 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.ViewTreeObserver
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -21,7 +24,6 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.distinctUntilChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.map
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -33,25 +35,30 @@ import com.prng.aeedee_android_chat.Payload
 import com.prng.aeedee_android_chat.R
 import com.prng.aeedee_android_chat.copyToClipboard
 import com.prng.aeedee_android_chat.databinding.ActivityChatBinding
+import com.prng.aeedee_android_chat.databinding.UpdateEmojiReactionLayoutBinding
 import com.prng.aeedee_android_chat.databinding.UploadLoaderLayoutBinding
 import com.prng.aeedee_android_chat.getMimeType
 import com.prng.aeedee_android_chat.gone
 import com.prng.aeedee_android_chat.hideKeyboardFrom
 import com.prng.aeedee_android_chat.invisible
 import com.prng.aeedee_android_chat.isNetworkConnection
+import com.prng.aeedee_android_chat.matchParent
 import com.prng.aeedee_android_chat.repository.ChatRepository
 import com.prng.aeedee_android_chat.roomdb.deo.ChatDao
 import com.prng.aeedee_android_chat.roomdb.deo.ChatDatabase
 import com.prng.aeedee_android_chat.roomdb.di.DatabaseModule
 import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageData
+import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageModel
 import com.prng.aeedee_android_chat.roomdb.entity_model.asDatabaseModel
 import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.toast
+import com.prng.aeedee_android_chat.userName
 import com.prng.aeedee_android_chat.util.CustomDialog
 import com.prng.aeedee_android_chat.util.FunctionScheduler
 import com.prng.aeedee_android_chat.util.UCropContract
 import com.prng.aeedee_android_chat.util.UCropInput
 import com.prng.aeedee_android_chat.util.UCropResult
+import com.prng.aeedee_android_chat.util.UserIdData
 import com.prng.aeedee_android_chat.view.chat_message.adapter.MessageItemListAdapter
 import com.prng.aeedee_android_chat.view.chat_message.model.ImageUploadRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
@@ -70,6 +77,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class ChatActivity : AppCompatActivity() {
     private lateinit var mActivityBinding: ActivityChatBinding
@@ -82,7 +91,11 @@ class ChatActivity : AppCompatActivity() {
         var userId: String = ""
         private var receiverId: String = ""
 
+        var isFirstLocalDb = true
         var isActivity = true
+
+        @SuppressLint("StaticFieldLeak")
+        var mActivity: Activity? = null
     }
 
     private var name: String = ""
@@ -100,7 +113,6 @@ class ChatActivity : AppCompatActivity() {
 
     private var isPagination = false
     private var isFirstTime = true
-    private var isFirstLocalDb = true
 
     private var isSocket = false
     private var isRecent = false
@@ -111,7 +123,12 @@ class ChatActivity : AppCompatActivity() {
 
     private lateinit var lDialog: CustomDialog<UploadLoaderLayoutBinding>
 
+    private lateinit var eDialog: CustomDialog<UpdateEmojiReactionLayoutBinding>
+
     private lateinit var popup: EmojiPopup
+
+    private var recentCount = 0
+    private var readStatusEmitCount = 0
 
     val takePicture: ActivityResultLauncher<Intent> = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -141,17 +158,26 @@ class ChatActivity : AppCompatActivity() {
             }
         }
 
+    private val pickMediaLatest =
+        registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                Log.d("PhotoPicker", "Media selected: $uri")
+                mViewModel.currentPhotoPath = uri.toString()
+                setPicture(false)
+            } else {
+                Log.d("PhotoPicker", "No media selected")
+            }
+        }
+
     private val cropImage = registerForActivityResult(UCropContract()) { result: UCropResult ->
         if (result.resultCode == RESULT_OK) {
             result.uri?.let { uri ->
                 uri.path?.let { path ->
                     uploadImageApi(path)
-
                 }
             }
         } else if (result.resultCode == UCrop.RESULT_ERROR) {
             result.error?.let { throwable ->
-                // Handle the crop error
                 Log.e("CropImage", "Error: ${throwable.message}")
             }
         }
@@ -170,8 +196,19 @@ class ChatActivity : AppCompatActivity() {
         mActivityBinding.lifecycleOwner = this
         mActivityBinding.viewModel = mViewModel
 
+        mAdapter = MessageItemListAdapter()
+        mActivityBinding.rvChatMessageList.adapter = mAdapter
+
+        mAdapter.setUserData(
+            UserIdData(userId = receiverId, userName = name, oppositeUserName = userName)
+        )
+
+        mActivity = this
+        isFirstLocalDb = true
+        readStatusEmitCount = 0
+
         val messages: LiveData<List<MessageDataUsers>?> =
-            chatDao.getMessageAll().map { it?.asDatabaseModel() }.distinctUntilChanged()
+            chatDao.getMessageAll().map { it?.asDatabaseModel() }//.distinctUntilChanged()
 
         messages.observe(this) {
             if (!isSocket)
@@ -226,9 +263,6 @@ class ChatActivity : AppCompatActivity() {
         val drawableResId = R.drawable.ic_delete_icon
         setDrawableStartWithSize(mActivityBinding.atvDeleteText, drawableResId)
 
-        mAdapter = MessageItemListAdapter()
-        mActivityBinding.rvChatMessageList.adapter = mAdapter
-
         Handler(Looper.myLooper()!!).postDelayed({
             mActivityBinding.rvChatMessageList.addOnScrollListener(object :
                 RecyclerView.OnScrollListener() {
@@ -258,14 +292,15 @@ class ChatActivity : AppCompatActivity() {
         }
 
         mViewModel.onEmojiUpdateListener = { reaction, data ->
-            mViewModel.emitReaction(reaction, data)
+            if (reaction != "+") mViewModel.emitReaction(reaction, data)
+//            else additionalEmojiDialog()
         }
 
         mViewModel.onMessageMenuListener = { menu, data ->
             when (menu.id) {
                 0 -> {
                     // - - Reply - -
-                    mViewModel.messageType(data._id, data.message, name)
+                    mViewModel.messageType(data.unique_id.toString(), data.message, name)
                     mViewModel.messageType(MessageType.Reply.name)
                     mViewModel.onReplyVisibility()
                 }
@@ -278,9 +313,7 @@ class ChatActivity : AppCompatActivity() {
                 2 -> {
                     // - - Forward - -
                     val forwardIntent = Intent(this@ChatActivity, ForwardUsersActivity::class.java)
-                    forwardIntent.putExtra("message", data.message)
-                    forwardIntent.putExtra("id", data._id)
-                    forwardIntent.putExtra("userId", data.userId)
+                    forwardIntent.putExtra("data", data)
                     startActivity(forwardIntent)
                     Log.e("TAG", "Forward: ")
                 }
@@ -297,6 +330,7 @@ class ChatActivity : AppCompatActivity() {
             mResponse?.let { _ ->
                 runBlocking {
                     isSocket = true
+
                     val idAlready =
                         mResponse!!.filter { d -> d.unique_id == it.unique_id }.map { it.unique_id }
                     if (idAlready.isNotEmpty()) {
@@ -312,7 +346,9 @@ class ChatActivity : AppCompatActivity() {
                     setDbResponse(arrayListOf(processedData), false)
 
                     val recyclerViewState = onSaveInstanceRV()
-                    mAdapter.notifyItemChanged((mResponse!!.size - 1), Payload.Update.name)
+                    runOnUiThread {
+                        mAdapter.notifyItemChanged((mResponse!!.size - 1), Payload.Update.name)
+                    }
                     onRestoreInstance(recyclerViewState)
 
                     scrollList()
@@ -355,35 +391,29 @@ class ChatActivity : AppCompatActivity() {
         }
 
         mViewModel.onReadStatusListener = {
-            if (it.ids != null) {
-                if (it.ids.isNotEmpty()) {
-                    for (id in it.ids) {
-                        mResponse?.let { list ->
-                            val position = mViewModel.getItemIndex(list, id)
-                            if (position > -1) {
-                                mResponse!![position].read_status = it.readStatus.toString().toInt()
-                                mAdapter.updateData(position, list[position])
-                                var recyclerViewState = onSaveInstanceRV()
-                                mAdapter.notifyItemChanged(
-                                    (mResponse!!.size - 1), Payload.Update.name
-                                )
-                                onRestoreInstance(recyclerViewState)
+            CoroutineScope(Dispatchers.IO).launch {
+                if (it.ids != null) {
+                    if (it.ids.isNotEmpty()) {
+                        it.ids.forEach { id ->
 
-                                for (i in mResponse!!.size - 1 downTo 0) {
-                                    if (mResponse!![i].read_status != 3) {
-                                        mResponse!![position].read_status = 3
-                                        mAdapter.updateData(position, mResponse!![position])
-                                    }
-                                    recyclerViewState = onSaveInstanceRV()
-                                    mAdapter.notifyItemChanged(
-                                        (mResponse!!.size - 1), Payload.Update.name
-                                    )
-                                    onRestoreInstance(recyclerViewState)
+                            val position = mViewModel.getItemIndex(mResponse!!, id)
+                            if (position > -1) {
+                                val fullList =
+                                    mResponse!!.filter { r -> r.unique_id == id } as ArrayList<MessageDataResponse>
+
+                                fullList.forEach { rs ->
+                                    rs.read_status = 3/*it.readStatus!!.toInt()*/
                                 }
+
+                                mResponse =
+                                    mResponse!!.map { rs -> rs.copy(read_status = it.readStatus!!.toInt()) } as ArrayList<MessageDataResponse>
+
+                                updateReadStatus(position)
+
+                                mViewModel.updateChildEntityInParent(chatDao, id, 3)
                             }
                         }
                     }
-                    setDbResponse(mResponse!!, false)
                 }
             }
         }
@@ -394,6 +424,7 @@ class ChatActivity : AppCompatActivity() {
         }
 
         mViewModel.onReactionDataListener = {
+            isEmoji = true
             emojiListener(data = it)
         }
 
@@ -445,6 +476,16 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateReadStatus(position: Int) {
+        if (mResponse != null)
+            if (mResponse!!.size > position) {
+                mAdapter.updateData(position, mResponse!![position])
+//                val recyclerViewState = onSaveInstanceRV()
+                runOnUiThread { mAdapter.notifyItemChanged(position, Payload.Update.name) }
+//                onRestoreInstance(recyclerViewState)
+            }
+    }
+
     private fun emojiKeyboard() {
         popup = EmojiPopup.Builder.fromRootView(mActivityBinding.aetEditMessage)
             .build(mActivityBinding.aetEditMessage)
@@ -460,16 +501,18 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun emojiListener(data: DatabaseReactionData) {
-        CoroutineScope(Dispatchers.Default).launch {
-            for (i in mResponse!!.indices) {
-                if (mResponse!![i].unique_id == data.messageId) {
-                    mResponse!![i].reaction = arrayListOf(data)
-                    mAdapter.selectMessage(mResponse!![i], i)
-                    mAdapter.notifyItemChanged(i, Payload.Update.name)
+        CoroutineScope(Dispatchers.IO).launch {
+            val updateData = mResponse!!.filter { it.unique_id == data.messageId }.map { it }
+            if (updateData.isNotEmpty()) {
+                val index = mResponse!!.indexOfFirst { it.unique_id == data.messageId }
+                mResponse!![index].reaction = arrayListOf(data)
+                mAdapter.selectMessage(mResponse!![index], index)
+                runOnUiThread {
+                    mAdapter.notifyItemChanged(index, Payload.Update.name)
                 }
             }
             Log.e("TAG", "emojiListener: ${mResponse!!.size}")
-            setDbResponse(mResponse!!)
+//            setDbResponse(mResponse!!)
         }
     }
 
@@ -496,12 +539,14 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun deleteSelection(data: MessageDataResponse) {
-        CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             for (i in mResponse!!.indices) {
                 if (mResponse!![i].unique_id == data.unique_id) {
                     mResponse!![i].isSelectEnable = !mResponse!![i].isSelectEnable
                     mAdapter.selectMessage(mResponse!![i], i)
-                    mAdapter.notifyItemChanged(i, Payload.Update.name)
+                    runOnUiThread {
+                        mAdapter.notifyItemChanged(i, Payload.Update.name)
+                    }
                     deleteMessageSelection(true)
                 }
             }
@@ -509,25 +554,14 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun emojiSelection(data: MessageDataResponse) {
-        CoroutineScope(Dispatchers.Default).launch {
-            for (i in mResponse!!.indices) {
-                if (mResponse!![i].unique_id == data.unique_id) {
-                    for (j in data.reaction!!.indices) {
-                        for (k in mResponse!![i].reaction!!.indices) {
-                            if (mResponse!![i].reaction!![k].userId == data.reaction!![j].userId) {
-                                mResponse!![i].reaction!![k].message = data.reaction!![j].message
-                                mResponse!![i].reaction!![k].receiverId =
-                                    data.reaction!![j].receiverId
-                                mResponse!![i].reaction!![k].messageId =
-                                    data.reaction!![j].messageId
-                                mResponse!![i].reaction!![k].userId = data.reaction!![j].userId
-                            } else {
-                                mResponse!![i].reaction!!.addAll(data.reaction!!)
-                            }
-                        }
-                    }
-                    mAdapter.selectMessage(mResponse!![i], i)
-                    mAdapter.notifyItemChanged(i, Payload.Update.name)
+        CoroutineScope(Dispatchers.IO).launch {
+            val updateData = mResponse!!.filter { it.unique_id == data.unique_id }.map { it }
+            if (updateData.isNotEmpty()) {
+                val index = mResponse!!.indexOfFirst { it.unique_id == data.unique_id }
+                mResponse!![index].reaction = data.reaction
+                mAdapter.selectMessage(mResponse!![index], index)
+                runOnUiThread {
+                    mAdapter.notifyItemChanged(index, Payload.Update.name)
                 }
             }
             setDbResponse(mResponse!!, false)
@@ -599,65 +633,91 @@ class ChatActivity : AppCompatActivity() {
                         lastId = ""
                         totalCount = 0
                     }
-//                if (isFirstTime) {
-//                    setDbResponse(it.response)
-//                } else {
-                setDbResponse(it.response, true)
-//                }
+
+                if (isFirstLocalDb) {
+                    setDbResponse(it.response)
+                } else {
+                    setDbResponse(it.response, true)
+                }
             }
         }
     }
 
+    //  chatDao.insertMessageDataUsers(dbUserMessage)
     private fun setDbResponse(response: List<MessageDataResponse>, isApi: Boolean) {
         lifecycleScope.launch {
-            if (response.isNotEmpty()) {
-                if (mResponse!!.isEmpty()) {
-                    val dbUserMessage = DatabaseMessageData(
-                        receiverId = receiverId,
-                        response = response.asDatabaseModel(),
-                        _id = receiverId
-                    )
-                    chatDao.insertMessageDataUsers(dbUserMessage)
-                } else {
-                    if (!isFirstTime && isApi) {
-                        mResponse?.addAll(0, response)
-                        val dbUserMessage = DatabaseMessageData(
-                            receiverId = receiverId,
-                            response = mResponse!!.asDatabaseModel(),
-                            _id = receiverId
-                        )
-                        chatDao.insertMessageDataUsers(dbUserMessage)
-                    } else if (isRecent && isApi) {
-                        mResponse?.addAll(response)
-                        val dbUserMessage = DatabaseMessageData(
-                            receiverId = receiverId,
-                            response = mResponse!!.asDatabaseModel(),
-                            _id = receiverId
-                        )
-                        chatDao.insertMessageDataUsers(dbUserMessage)
+            if (response != null)
+                if (response.isNotEmpty()) {
+                    if (mResponse!!.isEmpty()) {
+                        val (parentData, childData) = getParentData(response)
+                        chatDao.updateParentWithChildren(parentData, childData)
                     } else {
-                        val dbUserMessage = DatabaseMessageData(
-                            receiverId = receiverId,
-                            response = mResponse!!.asDatabaseModel(),
-                            _id = receiverId
-                        )
-                        chatDao.insertMessageDataUsers(dbUserMessage)
+                        if (!isFirstTime && isApi) {
+                            mResponse?.addAll(0, response)
+                            val (parentData, childData) = getParentData(mResponse!!)
+                            chatDao.updateParentWithChildren(parentData, childData)
+                        } else if (isRecent && isApi) {
+                            recentCount = response.size
+                            mResponse?.addAll(response)
+                            val (parentData, childData) = getParentData(mResponse!!)
+                            chatDao.updateParentWithChildren(parentData, childData)
+                        } else {
+                            val (parentData, childData) = getParentData(mResponse!!)
+                            chatDao.updateParentWithChildren(parentData, childData)
+                        }
                     }
+                } else if (mResponse!!.isEmpty()) {
+                    mActivityBinding.aivNoMessageIcon.visible()
                 }
-            } else if (mResponse!!.isEmpty()) {
-                mActivityBinding.aivNoMessageIcon.visible()
-            }
         }
     }
+
+    private suspend fun getParentData(response: List<MessageDataResponse>): Pair<DatabaseMessageData, List<DatabaseMessageModel>> =
+        suspendCoroutine { continuation ->
+            CoroutineScope(Dispatchers.IO).launch {
+                val updatedItems = updateOriginId(response, newOriginId = receiverId)
+                val parentData = DatabaseMessageData(
+                    receiverId = receiverId,
+                    response = updatedItems.asDatabaseModel(),
+                    _id = receiverId
+                )
+                continuation.resume(Pair(parentData, updatedItems.asDatabaseModel()))
+            }
+        }
+
+    private suspend fun updateOriginId(
+        items: List<MessageDataResponse>, newOriginId: String
+    ): List<MessageDataResponse> = suspendCoroutine { continuation ->
+        CoroutineScope(Dispatchers.IO).launch {
+
+            val list = items.map { item ->
+                item.copy(originId = newOriginId)
+            }
+
+            continuation.resume(removeDuplicate(list))
+        }
+    }
+
+    private suspend fun removeDuplicate(list: List<MessageDataResponse>): List<MessageDataResponse> =
+        suspendCoroutine { continuation ->
+            CoroutineScope(Dispatchers.IO).launch {
+                val idSet: HashSet<String> = HashSet()
+                val uniqueDataList: ArrayList<MessageDataResponse> = arrayListOf()
+
+                for (data in list) {
+                    if (idSet.add(data.unique_id.toString())) { // add returns false if the element is already present
+                        uniqueDataList.add(data)
+                    }
+                }
+
+                continuation.resume(uniqueDataList)
+            }
+        }
 
     private fun setDbResponse(response: List<MessageDataResponse>) {
         lifecycleScope.launch {
-            val dbUserMessage = DatabaseMessageData(
-                receiverId = receiverId,
-                response = if (response.isNotEmpty()) response.asDatabaseModel() else arrayListOf(),
-                _id = receiverId
-            )
-            chatDao.insertMessageDataUsers(dbUserMessage)
+            val (parentData, childData) = getParentData(response)
+            chatDao.updateParentWithChildren(parentData, childData)
         }
     }
 
@@ -688,11 +748,12 @@ class ChatActivity : AppCompatActivity() {
                         }, 1000)
                     } else if (isRecent) {
                         val processedList = mViewModel.addDateTime(responses)
-                        mResponse?.addAll(processedList)
+                        mResponse = processedList as ArrayList<MessageDataResponse>
                         mAdapter.setData(mResponse!!)
                         mAdapter.notifyItemRangeChanged(
-                            mResponse!!.size - responses.size, mResponse!!.size
+                            ((mResponse!!.size - recentCount) - 1), mResponse!!.size
                         )
+                        recentCount = 0
                         isRecent = false
                         scrollList()
                         Handler(Looper.myLooper()!!).postDelayed({
@@ -710,8 +771,11 @@ class ChatActivity : AppCompatActivity() {
                 }
                 mActivityBinding.rvChatMessageList.visible()
             }
+//            if (readStatusEmitCount < 2) {
             if (mResponse?.isNotEmpty() == true) {
+//                    readStatusEmitCount += 1
                 mViewModel.updateReadStatus(mResponse)
+//                }
             }
         } else {
             if (mResponse!!.isEmpty()) {
@@ -773,8 +837,12 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun imagePicker() {
-        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        pickMedia.launch(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            pickMediaLatest.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        } else {
+            val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            pickMedia.launch(intent)
+        }
     }
 
     private fun setPicture(isCamera: Boolean) {
@@ -883,42 +951,47 @@ class ChatActivity : AppCompatActivity() {
             lDialog.show()
     }
 
+    private fun additionalEmojiDialog() {
+        eDialog = CustomDialog(this, UpdateEmojiReactionLayoutBinding::inflate).apply {
+            configureDialog = { dialogBinding ->
+                window?.setLayout(matchParent, wrapContent)
+                window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                setCanceledOnTouchOutside(true)
+                setCancelable(true)
+
+                val popup = EmojiPopup.Builder.fromRootView(dialogBinding.clEmojiLayout)
+                    .build(dialogBinding.tvEmojiView)
+
+                dialogBinding.emojiButton.setOnClickListener {
+                    popup.toggle()
+                }
+
+                Handler(Looper.myLooper()!!).postDelayed({
+                    if (!popup.isShowing)
+                        popup.toggle()
+                }, 500)
+            }
+        }
+        if (!eDialog.isShowing)
+            eDialog.show()
+    }
+
     private fun dismiss() {
         if (this::lDialog.isInitialized)
             if (lDialog.isShowing)
                 lDialog.dismiss()
+
+        if (this::eDialog.isInitialized)
+            if (eDialog.isShowing)
+                eDialog.dismiss()
     }
 
-//    private fun emojiKeyboard() {
-//        val backgroundColor: Int = ContextCompat.getColor(applicationContext, R.color.white)
-//        val primaryColor: Int = ContextCompat.getColor(applicationContext, R.color.blue)
-//        val secondaryColor: Int = ContextCompat.getColor(applicationContext, R.color.blue)
-//        val dividerColor: Int = ContextCompat.getColor(applicationContext, R.color.gray)
-//        val textColor: Int = ContextCompat.getColor(applicationContext, R.color.blue)
-//        val textSecondaryColor: Int = ContextCompat.getColor(applicationContext, R.color.blue)
-//        val theme = EmojiTheming(
-//            backgroundColor, primaryColor, secondaryColor, dividerColor, textColor,
-//            textSecondaryColor
-//        )
-//
-//        if (this::popup.isInitialized)
-//            if (popup.isShowing)
-//                popup.dismiss()
-//        popup = EmojiPopup(
-//            mActivityBinding.clChatBox, mActivityBinding.aetEditMessage,
-//            theming = theme,
-//            popupWindowHeight = 200,
-//            onEmojiClickListener = {
-//                Log.e("emojiKeyboard", "emojiKeyboard: ${it.shortcodes}")
-//            },
-//        )
-//
-//        mActivityBinding.aivEmojiKB.setOnClickListener {
-//            if (!popup.isShowing) {
-//                popup.show()
-//            } else {
-//                popup.toggle()
+//    private fun convertToMessageDataResponseList(list: List<*>): List<DatabaseMessageModel> {
+//        return list.fold(mutableListOf()) { acc, item ->
+//            if (item is DatabaseMessageModel) {
+//                acc.add(item)
 //            }
+//            acc
 //        }
 //    }
 
@@ -940,6 +1013,7 @@ class ChatActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        mActivity = null
         isActivity = false
         if ((SocketHandler.getSocket().connected())) {
             ChatRepository.offEvents()

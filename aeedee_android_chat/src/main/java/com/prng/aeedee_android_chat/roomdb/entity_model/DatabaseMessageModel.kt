@@ -8,13 +8,16 @@ import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseFile
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
 import com.prng.aeedee_android_chat.view.chat_message.model.message.FileData
 
-@Entity(tableName = "DatabaseMessageModel")
+@Entity(
+    tableName = "DatabaseMessageModel"
+)
 data class DatabaseMessageModel(
     @PrimaryKey val _id: String,
     @SerializedName("userId") val userId: String,
     @SerializedName("unique_id") val uniqueId: String? = "",
-    @SerializedName("receiverId") val receiverId: String,
-    @SerializedName("read_status") val readStatus: Int,
+    @SerializedName("receiverId") var receiverId: String,
+    @SerializedName("originId") val originId: String,
+    @SerializedName("read_status") var readStatus: Int,
     @SerializedName("message") val message: String,
     @SerializedName("status") var status: Int,
     @SerializedName("createdAt") var createdAt: String,
@@ -25,9 +28,10 @@ data class DatabaseMessageModel(
     @SerializedName("msgType") val msgType: String? = "",
     @SerializedName("repliedId") val repliedId: String? = "",
     @SerializedName("replymsg") val replyMsg: String? = "",
+    @SerializedName("replyUserid") val replyUserid: String? = "",
     @SerializedName("timezone") val timezone: String? = "",
     @SerializedName("chat_type") val chatType: String? = "",
-    @SerializedName("reaction") val reaction: MutableList<DatabaseReactionData>? = mutableListOf(),
+    @SerializedName("reaction") var reaction: MutableList<DatabaseReactionData>? = mutableListOf(),
     @SerializedName("files") val files: MutableList<DatabaseFileData>? = mutableListOf()
 )
 
@@ -38,6 +42,7 @@ fun List<DatabaseMessageModel>.asDatabaseModel(): List<MessageDataResponse> {
             userId = it.userId,
             unique_id = it.uniqueId,
             receiverId = it.receiverId,
+            originId = it.originId,
             read_status = it.readStatus,
             message = it.message,
             updatedAt = it.updatedAt,
@@ -52,6 +57,7 @@ fun List<DatabaseMessageModel>.asDatabaseModel(): List<MessageDataResponse> {
             msgType = it.msgType,
             repliedId = it.repliedId,
             replymsg = it.replyMsg,
+            replyUserid = it.replyUserid,
             timezone = it.timezone,
             chat_type = it.chatType,
             reaction = it.reaction,
