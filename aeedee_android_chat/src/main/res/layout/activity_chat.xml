@@ -69,14 +69,13 @@
                 android:ellipsize="end"
                 android:paddingHorizontal="10dp"
                 android:singleLine="true"
-                android:text=""
-                android:textColor="#2196F3"
+                android:text="@string/offline_text"
+                android:textColor="@color/black"
                 android:textSize="13sp"
                 app:layout_constraintEnd_toStartOf="@+id/atvCancelSelection"
                 app:layout_constraintHorizontal_bias="0.0"
                 app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
-                app:layout_constraintTop_toBottomOf="@+id/atvName"
-                tools:text="+1-1234-5678" />
+                app:layout_constraintTop_toBottomOf="@+id/atvName" />
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/aivCall"
@@ -84,7 +83,7 @@
                 android:layout_height="50dp"
                 android:padding="15dp"
                 android:tint="#2196F3"
-                android:visibility="gone"
+                android:visibility="visible"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"

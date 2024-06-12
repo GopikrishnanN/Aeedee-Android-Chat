@@ -300,7 +300,12 @@ class ChatActivity : AppCompatActivity() {
             when (menu.id) {
                 0 -> {
                     // - - Reply - -
-                    mViewModel.messageType(data.unique_id.toString(), data.message, name)
+                    mViewModel.messageType(
+                        data.unique_id.toString(),
+                        data.message,
+                        data.files,
+                        name
+                    )
                     mViewModel.messageType(MessageType.Reply.name)
                     mViewModel.onReplyVisibility()
                 }
@@ -327,32 +332,42 @@ class ChatActivity : AppCompatActivity() {
         }
 
         mViewModel.onItemClickListListener = {
-            mResponse?.let { _ ->
-                runBlocking {
-                    isSocket = true
+//            mResponse?.let { _ ->
+            CoroutineScope(Dispatchers.IO).launch {
+                isSocket = true
 
-                    val idAlready =
-                        mResponse!!.filter { d -> d.unique_id == it.unique_id }.map { it.unique_id }
-                    if (idAlready.isNotEmpty()) {
-                        return@runBlocking
-                    }
-                    val processedData: MessageDataResponse = if (mResponse!!.isNotEmpty()) {
-                        mViewModel.addDateTime(it, mResponse!!.last().createdAt)
+                val idAlready =
+                    mAdapter.getAllItems().filter { d -> d.unique_id == it.unique_id }
+                        .map { it.unique_id }
+                if (idAlready.isNotEmpty()) {
+                    return@launch
+                }
+
+                mViewModel.addNewItemToList(it.unique_id.toString(), it, chatDao)
+
+                val processedData: MessageDataResponse =
+                    if (mAdapter.getAllItems().isNotEmpty()) {
+                        mViewModel.addDateTime(it, mAdapter.getAllItems().last().createdAt)
                     } else {
                         mViewModel.addDateTime(it, null)
                     }
-                    mAdapter.addData(processedData)
-                    mActivityBinding.aivNoMessageIcon.gone()
-                    setDbResponse(arrayListOf(processedData), false)
 
-                    val recyclerViewState = onSaveInstanceRV()
-                    runOnUiThread {
-                        mAdapter.notifyItemChanged((mResponse!!.size - 1), Payload.Update.name)
-                    }
-                    onRestoreInstance(recyclerViewState)
+                mAdapter.addData(processedData)
+                mActivityBinding.aivNoMessageIcon.gone()
 
-                    scrollList()
+                setDbNewMessage()
+
+//                setDbResponse(arrayListOf(processedData), false)
+
+                val recyclerViewState = onSaveInstanceRV()
+                runOnUiThread {
+                    mAdapter.notifyItemChanged(
+                        (this@ChatActivity.mResponse!!.size - 1), Payload.Update.name
+                    )
                 }
+                onRestoreInstance(recyclerViewState)
+
+                scrollList()
             }
         }
 
@@ -394,23 +409,23 @@ class ChatActivity : AppCompatActivity() {
             CoroutineScope(Dispatchers.IO).launch {
                 if (it.ids != null) {
                     if (it.ids.isNotEmpty()) {
+                        val list = mAdapter.getAllItems()
                         it.ids.forEach { id ->
+                            if (list.isNotEmpty()) {
+                                val position = mViewModel.getItemIndex(list as ArrayList, id)
+                                if (position > -1) {
+                                    val fullList =
+                                        list.filter { r -> r.unique_id == id } as ArrayList<MessageDataResponse>
 
-                            val position = mViewModel.getItemIndex(mResponse!!, id)
-                            if (position > -1) {
-                                val fullList =
-                                    mResponse!!.filter { r -> r.unique_id == id } as ArrayList<MessageDataResponse>
+                                    fullList.forEach { rs -> rs.read_status = 3 }
 
-                                fullList.forEach { rs ->
-                                    rs.read_status = 3/*it.readStatus!!.toInt()*/
+                                    mResponse =
+                                        list.map { rs -> rs.copy(read_status = 3) } as ArrayList<MessageDataResponse>
+
+                                    updateReadStatus(position)
+
+                                    mViewModel.updateChildEntityInParent(chatDao, id, 3)
                                 }
-
-                                mResponse =
-                                    mResponse!!.map { rs -> rs.copy(read_status = it.readStatus!!.toInt()) } as ArrayList<MessageDataResponse>
-
-                                updateReadStatus(position)
-
-                                mViewModel.updateChildEntityInParent(chatDao, id, 3)
                             }
                         }
                     }
@@ -429,11 +444,11 @@ class ChatActivity : AppCompatActivity() {
         }
 
         mViewModel.onDeleteMessageListener = { data ->
-            mResponse?.let {
+            mAdapter.getAllItems().let {
                 mViewModel.updateLists(it, data.ids!!.toMutableList(), false, this, mAdapter) {
                     dismiss()
                     deleteMessageSelection(false)
-                    setDbResponse(mResponse!!, false)
+                    setDbResponse(mAdapter.getAllItems(), false)
                 }
             }
         }
@@ -459,13 +474,13 @@ class ChatActivity : AppCompatActivity() {
 //            val request = DeleteMessageRequest(ids = selectedIds)
 //            deleteMessage(request)
 
-            mResponse?.let {
-                mViewModel.updateLists(it, selectedIds, false, this, mAdapter) {
-                    dismiss()
-                    deleteMessageSelection(false)
-                    setDbResponse(mResponse!!, false)
-                }
+//            mResponse?.let {
+            mViewModel.updateLists(mAdapter.getAllItems(), selectedIds, false, this, mAdapter) {
+                dismiss()
+                deleteMessageSelection(false)
+                setDbResponse(mAdapter.getAllItems(), false)
             }
+//            }
         }
 
         mActivityBinding.atvCancelSelection.setOnClickListener {
@@ -476,10 +491,22 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
+    private fun setDbNewMessage() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val list = mAdapter.getAllItems() as ArrayList
+            val (parentData, childData) = getParentData(list)
+            chatDao.updateParentWithChildren(parentData, childData)
+
+            val parentWithChildren = chatDao.getParentWithChildren(receiverId)
+            Log.e("TAG", "setDbNewMessage: ${parentWithChildren.children!!.size}")
+            Log.e("TAG", "setDbNewMessage: ${parentWithChildren.parent!!.response.size}")
+        }
+    }
+
     private fun updateReadStatus(position: Int) {
-        if (mResponse != null)
-            if (mResponse!!.size > position) {
-                mAdapter.updateData(position, mResponse!![position])
+        if (mAdapter.getAllItems() != null)
+            if (mAdapter.getAllItems().size > position) {
+                mAdapter.updateData(position, mAdapter.getAllItems()[position])
 //                val recyclerViewState = onSaveInstanceRV()
                 runOnUiThread { mAdapter.notifyItemChanged(position, Payload.Update.name) }
 //                onRestoreInstance(recyclerViewState)
@@ -502,16 +529,17 @@ class ChatActivity : AppCompatActivity() {
 
     private fun emojiListener(data: DatabaseReactionData) {
         CoroutineScope(Dispatchers.IO).launch {
-            val updateData = mResponse!!.filter { it.unique_id == data.messageId }.map { it }
+            val list = mAdapter.getAllItems()
+            val updateData = list.filter { it.unique_id == data.messageId }.map { it }
             if (updateData.isNotEmpty()) {
-                val index = mResponse!!.indexOfFirst { it.unique_id == data.messageId }
-                mResponse!![index].reaction = arrayListOf(data)
-                mAdapter.selectMessage(mResponse!![index], index)
+                val index = list.indexOfFirst { it.unique_id == data.messageId }
+                list[index].reaction = arrayListOf(data)
+                mAdapter.selectMessage(list[index], index)
                 runOnUiThread {
                     mAdapter.notifyItemChanged(index, Payload.Update.name)
                 }
             }
-            Log.e("TAG", "emojiListener: ${mResponse!!.size}")
+            Log.e("TAG", "emojiListener: ${list.size}")
 //            setDbResponse(mResponse!!)
         }
     }
@@ -520,7 +548,8 @@ class ChatActivity : AppCompatActivity() {
         runOnUiThread {
             if (isSelected) {
                 mActivityBinding.clMessageLayout.gone()
-                mActivityBinding.aetEditMessage.setText("")
+                if (mActivityBinding.aetEditMessage.text!!.isNotEmpty())
+                    mActivityBinding.aetEditMessage.setText("")
                 hideKeyboardFrom(applicationContext, mActivityBinding.aetEditMessage)
                 mActivityBinding.clDeleteChat.visible()
                 mActivityBinding.atvCancelSelection.visible()
@@ -540,10 +569,11 @@ class ChatActivity : AppCompatActivity() {
 
     private fun deleteSelection(data: MessageDataResponse) {
         CoroutineScope(Dispatchers.IO).launch {
-            for (i in mResponse!!.indices) {
-                if (mResponse!![i].unique_id == data.unique_id) {
-                    mResponse!![i].isSelectEnable = !mResponse!![i].isSelectEnable
-                    mAdapter.selectMessage(mResponse!![i], i)
+            val list = mAdapter.getAllItems()
+            for (i in list.indices) {
+                if (list[i].unique_id == data.unique_id) {
+                    list[i].isSelectEnable = !list[i].isSelectEnable
+                    mAdapter.selectMessage(list[i], i)
                     runOnUiThread {
                         mAdapter.notifyItemChanged(i, Payload.Update.name)
                     }
@@ -555,16 +585,18 @@ class ChatActivity : AppCompatActivity() {
 
     private fun emojiSelection(data: MessageDataResponse) {
         CoroutineScope(Dispatchers.IO).launch {
-            val updateData = mResponse!!.filter { it.unique_id == data.unique_id }.map { it }
+            val list = mAdapter.getAllItems()
+            val updateData =
+                mAdapter.getAllItems().filter { it.unique_id == data.unique_id }.map { it }
             if (updateData.isNotEmpty()) {
-                val index = mResponse!!.indexOfFirst { it.unique_id == data.unique_id }
-                mResponse!![index].reaction = data.reaction
-                mAdapter.selectMessage(mResponse!![index], index)
+                val index = list.indexOfFirst { it.unique_id == data.unique_id }
+                list[index].reaction = data.reaction
+                mAdapter.selectMessage(list[index], index)
                 runOnUiThread {
                     mAdapter.notifyItemChanged(index, Payload.Update.name)
                 }
             }
-            setDbResponse(mResponse!!, false)
+            setDbResponse(list, false)
         }
     }
 
@@ -579,7 +611,9 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun onRestoreInstance(p: Parcelable?) {
-        mActivityBinding.rvChatMessageList.layoutManager?.onRestoreInstanceState(p)
+        mActivityBinding.rvChatMessageList.post {
+            mActivityBinding.rvChatMessageList.layoutManager?.onRestoreInstanceState(p)
+        }
     }
 
     private fun emitActiveTimeLoop() {
@@ -637,6 +671,10 @@ class ChatActivity : AppCompatActivity() {
                 if (isFirstLocalDb) {
                     setDbResponse(it.response)
                 } else {
+                    if (isRecent) {
+                        if (it.response.size > 49)
+                            isFirstLocalDb = true
+                    }
                     setDbResponse(it.response, true)
                 }
             }
@@ -772,9 +810,9 @@ class ChatActivity : AppCompatActivity() {
                 mActivityBinding.rvChatMessageList.visible()
             }
 //            if (readStatusEmitCount < 2) {
-            if (mResponse?.isNotEmpty() == true) {
+            if (mAdapter.getAllItems().isNotEmpty()) {
 //                    readStatusEmitCount += 1
-                mViewModel.updateReadStatus(mResponse)
+                mViewModel.updateReadStatus(mAdapter.getAllItems() as ArrayList<MessageDataResponse>)
 //                }
             }
         } else {
@@ -901,7 +939,7 @@ class ChatActivity : AppCompatActivity() {
     private fun sendChatMessage() {
         mViewModel.sendChatMessage().observe(this) { data ->
             if (data != null) {
-                mViewModel.messageEventListener(uniqueId = mViewModel.uniqueId)
+                mViewModel.messageEventListener()
             }
         }
     }

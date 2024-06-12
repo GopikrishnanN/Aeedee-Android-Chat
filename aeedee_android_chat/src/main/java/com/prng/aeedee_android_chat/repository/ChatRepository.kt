@@ -2,6 +2,8 @@ package com.prng.aeedee_android_chat.repository
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.prng.aeedee_android_chat.ACTIVE_TIME
 import com.prng.aeedee_android_chat.CHAT_CONNECT
@@ -84,8 +86,10 @@ object ChatRepository {
 
     private fun onListenerChat() {
         offChatEvents()
-        mSocket.on(START_TYPING, onStartTyping)
-        mSocket.on(STOP_TYPING, onStopTyping)
+        Handler(Looper.getMainLooper()).postDelayed({
+            mSocket.on(START_TYPING, onStartTyping)
+            mSocket.on(STOP_TYPING, onStopTyping)
+        }, 500)
         mSocket.on(Socket.EVENT_CONNECT_ERROR, onConnectionError)
     }
 
@@ -136,9 +140,9 @@ object ChatRepository {
 
     fun emitStartStop(isStart: Boolean, data: JSONObject) {
         if (isStart) {
-            mSocket.emit(STOP_TYPING, data)
-        } else {
             mSocket.emit(START_TYPING, data)
+        } else {
+            mSocket.emit(STOP_TYPING, data)
         }
     }
 
@@ -192,6 +196,7 @@ object ChatRepository {
                 status = json.getInt("status"),
                 repliedId = json.getString("repliedId"),
                 replymsg = json.getString("replymsg"),
+                replyImage = json.getString("replyImage"),
                 timezone = json.getOrDefault("timezone", String()),
                 msgType = json.getString("msgType"),
                 link = json.getString("link"),

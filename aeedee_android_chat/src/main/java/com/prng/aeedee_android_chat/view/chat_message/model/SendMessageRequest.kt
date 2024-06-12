@@ -10,6 +10,7 @@ data class SendMessageRequest(
     val message: String? = "",
     val link: String? = "",
     val repliedId: String? = "",
+    val replyImage: String? = "",
     val replymsg: String? = "",
     val files: List<FileData>? = arrayListOf(),
     val msgType: String? = "",

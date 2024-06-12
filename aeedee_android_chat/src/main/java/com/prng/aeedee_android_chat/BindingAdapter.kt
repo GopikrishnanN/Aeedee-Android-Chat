@@ -11,7 +11,6 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
-import java.lang.StringBuilder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -74,7 +73,7 @@ fun setMessageTime(textView: AppCompatTextView, dateTime: String?) {
     if (dateTime != null) {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
         inputFormat.timeZone = TimeZone.getTimeZone("UTC")
-        val outputFormat = SimpleDateFormat("hh:mma", Locale.getDefault())
+        val outputFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
         if (dateTime.isNotEmpty()) {
             val date = inputFormat.parse(dateTime)
             textView.text = date?.let { outputFormat.format(it) }.toString().lowercase()
@@ -93,20 +92,15 @@ fun setMessageDateTime(textView: AppCompatTextView, dateTime: String?) {
     textView.text = if (dateTime != null) {
         val date: Date? = originalFormat.parse(dateTime)
 
-        // Format the date to the desired format
-        val targetFormat = SimpleDateFormat("MMM dd, h:mm a", Locale.getDefault())
+        val targetFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
         if (date != null) {
             if (msgDateTimeConvert(dateTime) == getCurrentDate()) {
                 "Today"
             } else {
                 targetFormat.format(date).uppercase(Locale.getDefault())
             }
-        } else {
-            ""
-        }
-    } else {
-        ""
-    }
+        } else ""
+    } else ""
 }
 
 @BindingAdapter("android:visibility")

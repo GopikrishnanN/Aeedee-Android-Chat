@@ -37,6 +37,7 @@ fun List<DatabaseMessageData>.asDatabaseModel(): List<MessageDataUsers> {
                     repliedId = data.repliedId,
                     replyMsg = data.replyMsg,
                     replyUserid = data.replyUserid,
+                    replyImage = data.replyImage,
                     timezone = data.timezone,
                     chatType = data.chatType,
                     reaction = data.reaction,

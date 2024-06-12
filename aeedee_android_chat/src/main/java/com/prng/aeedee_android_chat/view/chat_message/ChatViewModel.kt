@@ -8,8 +8,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
-import android.os.Handler
-import android.os.Looper
 import android.provider.MediaStore
 import android.text.Editable
 import android.util.Log
@@ -38,6 +36,7 @@ import com.prng.aeedee_android_chat.msgDateTimeConvert
 import com.prng.aeedee_android_chat.repository.ChatActivityRepository
 import com.prng.aeedee_android_chat.repository.ChatRepository
 import com.prng.aeedee_android_chat.roomdb.deo.ChatDao
+import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageModel
 import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.toast
 import com.prng.aeedee_android_chat.userID
@@ -54,6 +53,7 @@ import com.prng.aeedee_android_chat.view.chat_message.model.MessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.ReadStatusData
 import com.prng.aeedee_android_chat.view.chat_message.model.SendMessageRequest
+import com.prng.aeedee_android_chat.view.chat_message.model.asDatabaseModel
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageResponse
@@ -64,6 +64,8 @@ import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltip
 import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltipUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -102,10 +104,6 @@ class ChatViewModel : ViewModel() {
     @SuppressLint("StaticFieldLeak")
     private lateinit var mActivity: Activity
 
-    private var delay: Long = 1000
-    private var lastTextEdit: Long = 0
-    private var handler: Handler = Handler(Looper.myLooper()!!)
-    private var isTyping = false
     private var receiverId: String = ""
     private var userId: String = ""
     private val auth =
@@ -148,7 +146,10 @@ class ChatViewModel : ViewModel() {
     private var repliedId: String = ""
 
     // Reply Message
-    private var replymsg: String = ""
+    private var replyMsg: String = ""
+
+    // Reply Image
+    private var replyImage: String = ""
 
     // Unique Id
     var uniqueId: String = ""
@@ -173,7 +174,7 @@ class ChatViewModel : ViewModel() {
         }
 
         ChatRepository.onTypingListener = {
-            if (it.receiverId == userID) {
+            if (it.receiverId == receiverId) {
                 onTypingListener?.invoke(it.isStatus)
             }
         }
@@ -233,8 +234,9 @@ class ChatViewModel : ViewModel() {
             status = 1,
             link = getFistLink(getMessageText()),
             msgType = msgType,
-            replymsg = replymsg,
+            replymsg = replyMsg,
             repliedId = repliedId,
+            replyImage = replyImage,
             files = mediaFiles,
             createdAt = getCurrentDateTime(),
             updatedAt = getCurrentDateTime(),
@@ -285,32 +287,35 @@ class ChatViewModel : ViewModel() {
         onEmojiUpdatesListener?.invoke(data)
     }
 
-    private val inputFinishChecker = Runnable {
-        if (System.currentTimeMillis() > lastTextEdit + delay - 500) {
-            isTyping = false
-            ChatRepository.emitStartStop(false, sendTyping(receiverId, userID))
-        }
-    }
+    private var typingJob: Job? = null
+
+    private val typingDelay = 2000L
 
     fun onTextChanged(char: CharSequence, start: Int, end: Int, count: Int) {
         chatText.value = char.toString()
-        if (!isTyping) {
-            isTyping = true
+
+        typingJob?.cancel()
+
+        startTyping()
+        typingJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(typingDelay)
             clearTyping()
         }
-        handler.removeCallbacks(inputFinishChecker)
     }
 
     fun afterTextChanged(s: Editable) {
         onMessageTextListener?.invoke(s.toString())
-        if (s.isNotEmpty()) {
-            lastTextEdit = System.currentTimeMillis()
-            handler.postDelayed(inputFinishChecker, delay)
+        if (s.isEmpty()) {
+            clearTyping()
         }
     }
 
-    fun clearTyping() {
+    private fun startTyping() {
         ChatRepository.emitStartStop(true, sendTyping(receiverId, userId))
+    }
+
+    fun clearTyping() {
+        ChatRepository.emitStartStop(false, sendTyping(receiverId, userId))
     }
 
     fun setMedias(url: String, type: String, isOnFile: Boolean) {
@@ -325,17 +330,25 @@ class ChatViewModel : ViewModel() {
         msgType = type
     }
 
-    fun messageType(repliedId: String, replyMessage: String, name: String) {
+    fun messageType(
+        repliedId: String, replyMessage: String, files: MutableList<FileData>?, name: String
+    ) {
         this.repliedId = repliedId
-        this.replymsg = replyMessage
+        this.replyMsg = replyMessage
+        this.replyImage = getReplyFiles(files)
         mReplyUserMessage.value = replyMessage
         mReplyUserName.value = name
+    }
+
+    private fun getReplyFiles(files: MutableList<FileData>?): String {
+        return if (files != null) if (files.isNotEmpty()) files.first().url.toString() else "" else ""
     }
 
     fun onReplyCloseClickListener() {
         replyVisibility.value = false
         this.repliedId = ""
-        this.replymsg = ""
+        this.replyMsg = ""
+        this.replyImage = ""
     }
 
     fun onReplyVisibility() {
@@ -420,12 +433,12 @@ class ChatViewModel : ViewModel() {
 
                 ChatRepository.emitSendMessage(sendMessage(receiverId, userId))
 
-                messageEventListener(uniqueId = uniqueId)
+                messageEventListener()
             }
         }
     }
 
-    fun messageEventListener(id: String = "", uniqueId: String = "") {
+    fun messageEventListener(id: String = "") {
         val data = MessageDataResponse(
             _id = id,
             unique_id = this.uniqueId,
@@ -437,18 +450,20 @@ class ChatViewModel : ViewModel() {
             link = getFistLink(getMessageText()),
             msgType = msgType,
             repliedId = repliedId,
-            replymsg = replymsg,
+            replyImage = replyImage,
+            replymsg = replyMsg,
             files = mediaFiles,
             createdAt = getCurrentDateTime(),
             updatedAt = getCurrentDateTime(),
-            chat_type = "",
+            chat_type = getChatType(),
             timezone = getTimeZone(),
             originId = receiverId,
         )
 
         msgType = MessageType.Normal.name.lowercase(Locale.getDefault())
         repliedId = ""
-        replymsg = ""
+        replyMsg = ""
+        replyImage = ""
         mediaFiles = arrayListOf()
         this.uniqueId = ""
 
@@ -495,6 +510,7 @@ class ChatViewModel : ViewModel() {
 
     private fun sendMessage(receiverId: String, userId: String): JSONObject {
         uniqueId = getUniqueId()
+
         val message = getMessageText()
         val sJSONObject = JSONObject()
         sJSONObject.put("receiver_id", receiverId)
@@ -507,8 +523,12 @@ class ChatViewModel : ViewModel() {
         sJSONObject.put("files", JSONArray(Gson().toJson(mediaFiles)))
         sJSONObject.put("msgType", msgType)
         sJSONObject.put("repliedId", repliedId)
-        sJSONObject.put("replymsg", replymsg)
+        sJSONObject.put("replyImage", replyImage)
+        sJSONObject.put("replymsg", replyMsg)
+        sJSONObject.put("chat_type", getChatType())
         sJSONObject.put("timezone", getTimeZone())
+        sJSONObject.put("createdAt", getCurrentDateTime())
+        sJSONObject.put("updatedAt", getCurrentDateTime())
 
         Log.e("TAG", "messages...: $sJSONObject")
         return sJSONObject
@@ -705,8 +725,11 @@ class ChatViewModel : ViewModel() {
     }
 
     fun updateLists(
-        list: List<MessageDataResponse>, ids: MutableList<String>, isClear: Boolean,
-        activity: Activity, adapter: MessageItemListAdapter,
+        list: List<MessageDataResponse>,
+        ids: MutableList<String>,
+        isClear: Boolean,
+        activity: Activity,
+        adapter: MessageItemListAdapter,
         onResult: (List<MessageDataResponse>) -> Unit
     ) {
         ChatActivityRepository.updateLists(list, ids, isClear, adapter, activity, onResult)
@@ -718,23 +741,23 @@ class ChatViewModel : ViewModel() {
             val parentWithChildren = chatDao.getParentWithChildren(receiverId)
 
             if (parentWithChildren != null) {
-                if (parentWithChildren.children != null) {
-                    val childToUpdate =
-                        parentWithChildren.children.find { it.uniqueId == childId }
+                if (parentWithChildren.parent?.response != null) {
 
-                    if (ifData == 3)
-                        childToUpdate?.readStatus = 3
+                    val childToUpdate: MutableList<DatabaseMessageModel> =
+                        parentWithChildren.parent.response.map {
+                            if (ifData == 3) it.readStatus = 3
+                            chatDao.updateChildren(it)
+                            it
+                        }.toMutableList()
 
                     if (childToUpdate != null) {
-                        chatDao.updateChildren(childToUpdate)
-
                         val index =
-                            parentWithChildren.children.indexOfFirst { it.uniqueId == childId }
-                        val childrenList = parentWithChildren.children.toMutableList()
+                            parentWithChildren.parent.response.indexOfFirst { it.uniqueId == childId }
+                        val childrenList: MutableList<DatabaseMessageModel>
                         if (index > -1) {
                             val parentToUpdate = parentWithChildren.parent
-                            childrenList[index] = childToUpdate
-                            parentToUpdate?.let {
+                            childrenList = childToUpdate
+                            parentToUpdate.let {
                                 it.receiverId = receiverId
                                 it.response = childrenList
                                 chatDao.updateParent(it)
@@ -744,4 +767,52 @@ class ChatViewModel : ViewModel() {
                 }
             }
         }
+
+    fun addNewItemToList(uniqueId: String, newItem: MessageDataResponse, chatDao: ChatDao) {
+        CoroutineScope(Dispatchers.IO).launch {
+
+            val parentWithChildren = chatDao.getParentWithChildren(receiverId)
+
+            if (parentWithChildren != null) {
+                if (parentWithChildren.parent != null) {
+                    val childToUpdate =
+                        parentWithChildren.parent.response.find { it.uniqueId == uniqueId }
+
+                    if (childToUpdate != null) {
+                        chatDao.updateChildren(arrayListOf(newItem).asDatabaseModel().first())
+
+                        val index =
+                            parentWithChildren.parent.response.indexOfFirst { it.uniqueId == uniqueId }
+                        val childrenList = parentWithChildren.parent.response.toMutableList()
+                        if (index > -1) {
+                            val parentToUpdate = parentWithChildren.parent
+                            childrenList[index] = arrayListOf(newItem).asDatabaseModel().first()
+                            parentToUpdate.let {
+                                it.receiverId = receiverId
+                                it.response = childrenList
+                                chatDao.updateParentWithChildren(it, childrenList)
+                            }
+                        }
+                    } else {
+                        chatDao.updateChildren(arrayListOf(newItem).asDatabaseModel().first())
+                        val childrenList = parentWithChildren.parent.response.toMutableList()
+                        val parentToUpdate = parentWithChildren.parent
+                        childrenList.add(arrayListOf(newItem).asDatabaseModel().first())
+                        parentToUpdate.let {
+                            it.receiverId = receiverId
+                            it.response = childrenList
+                            chatDao.updateParent(it)
+                            val index =
+                                parentWithChildren.parent.response.indexOfFirst { i -> i.uniqueId == uniqueId }
+                            if (index > -1) Log.e(
+                                "addNewItemToList",
+                                "addNewItemToList--------------$uniqueId"
+                            )
+                        }
+                    }
+                }
+            }
+
+        }
+    }
 }

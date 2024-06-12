@@ -56,6 +56,10 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         (mList as ArrayList)[position] = list
     }
 
+    fun getAllItems(): List<MessageDataResponse> {
+        return mList ?: arrayListOf()
+    }
+
     fun getSelectedIds(): List<String> {
         return mList!!.filter { it.isSelectEnable }.map { it.unique_id.toString() }
     }
@@ -305,10 +309,14 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 binding.data = mList!![position]
                 binding.receiverId = mUserData
 
-                Log.e("TAG", "onBindViewHolder:receiverId ${mList!![position].replyUserid}")
+                Log.e("TAG", "onBindViewHolder:receiverId ${mList!![position].replyImage}")
 //                binding.executePendingBindings()
 
                 setConstraintLayoutWidthToPercent(binding.root.context, binding.clOverlayLayout)
+
+                if (mList!![position].replyImage!!.isNotEmpty())
+                    Glide.with(binding.root.context).load(mList!![position].replyImage)
+                        .into(binding.atvRightReplyImage)
 
                 binding.clOverlayLayout.setOnLongClickListener {
                     if (!isSelection) {
@@ -335,10 +343,14 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 binding.data = mList!![position]
                 binding.receiverId = mUserData
 
-                Log.e("TAG", "onBindViewHolder:receiverId ${mList!![position].replyUserid}")
+                Log.e("TAG", "onBindViewHolder:receiverId ${mList!![position].replyImage}")
 //                binding.executePendingBindings()
 
                 setConstraintLayoutWidthToPercent(binding.root.context, binding.clOverlayLayout)
+
+                if (mList!![position].replyImage?.isNotEmpty() == true)
+                    Glide.with(binding.root.context).load(mList!![position].replyImage)
+                        .into(binding.atvLeftReplyImage)
 
                 binding.clOverlayLayout.setOnLongClickListener {
                     if (!isSelection) {

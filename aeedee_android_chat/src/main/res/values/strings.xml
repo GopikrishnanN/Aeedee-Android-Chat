@@ -25,5 +25,6 @@
     <string name="regular_text_view">Regular TextView %s</string>
     <string name="forward_to_title">Forward to…</string>
     <string name="forward_text">Forward</string>
+    <string name="offline_text">offline</string>
 
 </resources>

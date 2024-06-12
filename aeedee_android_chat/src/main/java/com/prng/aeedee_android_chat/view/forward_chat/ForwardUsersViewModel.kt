@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import com.google.gson.Gson
 import com.prng.aeedee_android_chat.MessageType
 import com.prng.aeedee_android_chat.extractFirstUrl
+import com.prng.aeedee_android_chat.getCurrentDateTime
 import com.prng.aeedee_android_chat.getTimeZone
 import com.prng.aeedee_android_chat.getUniqueId
 import com.prng.aeedee_android_chat.repository.ChatActivityRepository
@@ -73,6 +74,8 @@ class ForwardUsersViewModel : ViewModel() {
             sJSONObject.put("repliedId", "")
             sJSONObject.put("replymsg", "")
             sJSONObject.put("chat_type", msgType)
+            sJSONObject.put("createdAt", getCurrentDateTime())
+            sJSONObject.put("updatedAt", getCurrentDateTime())
             sJSONObject.put("timezone", getTimeZone())
 
             Log.e("TAG", "messages...: $sJSONObject")
