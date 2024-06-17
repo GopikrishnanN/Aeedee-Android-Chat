@@ -121,4 +121,8 @@ dependencies {
     // - - Emoji
     implementation("com.vanniktech:emoji-google:$emojiVersion")
 
+    val emojiPickerVersion = "1.5.0-alpha01"
+    // - - EmojiPicker
+    implementation("androidx.emoji2:emoji2-emojipicker:$emojiPickerVersion")
+
 }

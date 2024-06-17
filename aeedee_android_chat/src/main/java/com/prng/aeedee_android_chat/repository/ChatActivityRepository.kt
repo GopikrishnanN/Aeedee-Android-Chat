@@ -5,8 +5,11 @@ import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.prng.aeedee_android_chat.Payload
 import com.prng.aeedee_android_chat.retrofit.RetrofitClient
+import com.prng.aeedee_android_chat.roomdb.deo.ChatDao
+import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageModel
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserResponse
+import com.prng.aeedee_android_chat.view.chat_message.ChatViewModel
 import com.prng.aeedee_android_chat.view.chat_message.adapter.MessageItemListAdapter
 import com.prng.aeedee_android_chat.view.chat_message.model.ImageUploadRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.ImageUploadResponse
@@ -15,6 +18,7 @@ import com.prng.aeedee_android_chat.view.chat_message.model.MessageListResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.SendMessageRequest
+import com.prng.aeedee_android_chat.view.chat_message.model.asDatabaseModel
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageResponse
 import com.prng.aeedee_android_chat.view.chat_user_bottom.model.UsersListResponse
@@ -207,27 +211,71 @@ object ChatActivityRepository {
 
     fun updateLists(
         list: List<MessageDataResponse>, ids: MutableList<String>,
-        isClear: Boolean, adapter: MessageItemListAdapter, activity: Activity,
-        onResult: (List<MessageDataResponse>) -> Unit
+        receiverId: String, chatDao: ChatDao, adapter: MessageItemListAdapter, activity: Activity,
+        isDelete: Boolean, onResult: (List<MessageDataResponse>) -> Unit
     ) {
         CoroutineScope(Dispatchers.IO).launch {
-            if (list.isNotEmpty()) {
-                for (i in list.indices) {
-                    for (j in ids.indices) {
-                        if (list[i].unique_id.toString() == ids[j]) {
-                            list[i].status = if (!isClear) 0 else 1
-                            list[i].isSelectEnable = false
-                            adapter.updateData(i, list = list[i])
-                            activity.runOnUiThread {
-                                adapter.notifyItemChanged(i, Payload.Update.name)
-                            }
+            if (isDelete) {
+                if (list.isNotEmpty()) {
+                    val updatedMessages = list.map { item ->
+                        if (item.unique_id in ids) item.apply { this.status = 0 } else item
+                    }
+                    val idsSet = ids.toSet()
+                    for (i in updatedMessages.indices) {
+                        if (idsSet.contains(updatedMessages[i].unique_id)) {
+                            adapter.updateData(i, list = updatedMessages[i])
+                            activity.runOnUiThread { adapter.notifyItemChanged(i) }
                         }
                     }
+                    updateChildEntityInParent(chatDao, ids, receiverId, 4)
+                    adapter.isSelection = false
+                    withContext(Dispatchers.IO) { onResult(updatedMessages) }
                 }
+            } else {
+                val resetMessages = list.map { item ->
+                    if (item.isSelectEnable) item.isSelectEnable = false
+                    item
+                }
+                val idsSet = ids.toSet()
+                for (i in resetMessages.indices) {
+                    if (idsSet.contains(resetMessages[i].unique_id)) {
+                        adapter.updateData(i, list = resetMessages[i])
+                        activity.runOnUiThread { adapter.notifyItemChanged(i) }
+                    }
+                }
+                adapter.isSelection = false
+                withContext(Dispatchers.IO) { onResult(resetMessages) }
             }
-            adapter.isSelection = false
-            withContext(Dispatchers.Main) {
-                onResult(list)
+        }
+    }
+
+    private fun updateChildEntityInParent(
+        chatDao: ChatDao, childIds: List<String>, receiverId: String, ifData: Int
+    ) = CoroutineScope(Dispatchers.IO).launch {
+        val idsSet = childIds.toSet()
+        val parentWithChildren = chatDao.getParentWithChildren(receiverId)
+
+        if (parentWithChildren != null) {
+            if (parentWithChildren.parent?.response != null) {
+
+                val childToUpdate: MutableList<DatabaseMessageModel> =
+                    parentWithChildren.parent.response.map {
+                        if (ifData == 4 && idsSet.contains(it.uniqueId)) it.status = 0
+                        chatDao.updateChildren(it)
+                        it
+                    }.toMutableList()
+
+                if (childToUpdate != null) {
+                    try {
+                        val parentToUpdate = parentWithChildren.parent
+                        parentToUpdate.let {
+                            it.receiverId = receiverId
+                            it.response = childToUpdate
+                            chatDao.updateParent(it)
+                        }
+                    } catch (_: Exception) {
+                    }
+                }
             }
         }
     }

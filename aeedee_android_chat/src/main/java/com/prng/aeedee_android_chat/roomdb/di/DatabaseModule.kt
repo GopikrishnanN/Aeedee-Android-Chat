@@ -8,11 +8,10 @@ import com.prng.aeedee_android_chat.roomdb.deo.ChatDatabase
 object DatabaseModule {
 
     fun provideAppDatabase(appContext: Context): ChatDatabase {
-        return Room.databaseBuilder(
-            appContext,
-            ChatDatabase::class.java,
-            "Chats"
-        ).allowMainThreadQueries().fallbackToDestructiveMigration().build()
+        return Room.databaseBuilder(appContext, ChatDatabase::class.java, "Chats")
+            .allowMainThreadQueries()
+            .enableMultiInstanceInvalidation()
+            .fallbackToDestructiveMigration().build()
     }
 
     fun provideChannelDao(usersDatabase: ChatDatabase): ChatDao {

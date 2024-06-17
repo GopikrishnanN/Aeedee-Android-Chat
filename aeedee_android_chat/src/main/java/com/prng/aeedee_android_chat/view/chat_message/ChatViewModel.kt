@@ -6,6 +6,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -13,24 +16,30 @@ import android.text.Editable
 import android.util.Log
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.emoji2.emojipicker.EmojiPickerView
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.prng.aeedee_android_chat.MessageType
+import com.prng.aeedee_android_chat.Payload
 import com.prng.aeedee_android_chat.R
+import com.prng.aeedee_android_chat.databinding.EmojiPickerLayoutBinding
 import com.prng.aeedee_android_chat.emojiList
 import com.prng.aeedee_android_chat.extractFirstUrl
 import com.prng.aeedee_android_chat.getCurrentDateTime
+import com.prng.aeedee_android_chat.getScreenHeight
 import com.prng.aeedee_android_chat.getTimeZone
 import com.prng.aeedee_android_chat.getUniqueId
 import com.prng.aeedee_android_chat.gone
 import com.prng.aeedee_android_chat.isNetworkConnection
+import com.prng.aeedee_android_chat.matchParent
 import com.prng.aeedee_android_chat.messageMenuList
 import com.prng.aeedee_android_chat.msgDateTimeConvert
 import com.prng.aeedee_android_chat.repository.ChatActivityRepository
@@ -40,6 +49,8 @@ import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageModel
 import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.toast
 import com.prng.aeedee_android_chat.userID
+import com.prng.aeedee_android_chat.util.CustomDialog
+import com.prng.aeedee_android_chat.view.chat.model.UserStatusData
 import com.prng.aeedee_android_chat.view.chat_message.adapter.EmojiItemsAdapter
 import com.prng.aeedee_android_chat.view.chat_message.adapter.MenuItemsAdapter
 import com.prng.aeedee_android_chat.view.chat_message.adapter.MessageItemListAdapter
@@ -59,6 +70,7 @@ import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessag
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.message.FileData
 import com.prng.aeedee_android_chat.visible
+import com.prng.aeedee_android_chat.wrapContent
 import io.github.douglasjunior.androidSimpleTooltip.OverlayView
 import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltip
 import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltipUtils
@@ -94,6 +106,9 @@ class ChatViewModel : ViewModel() {
     private val mMessageReadStatus = MutableLiveData<Int>()
     private val messageReadStatus: LiveData<Int> get() = mMessageReadStatus
 
+    private val mOnlineReadStatus = MutableLiveData<Int>()
+    private val onlineReadStatus: LiveData<Int> get() = mOnlineReadStatus
+
     var photoFile: File? = null
     private val requestImageCode = 1
     private val qAbovePermission = arrayOf(permission.CAMERA, permission.ACCESS_MEDIA_LOCATION)
@@ -109,6 +124,8 @@ class ChatViewModel : ViewModel() {
     private val auth =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdhbmVzaC5pbmZvLmtAZ21haWwuY29tIiwiaWQiOiI2NWIxZjMzN2M2NWQ3ODc0NWRmMTVjYTEiLCJpYXQiOjE3MDgwMDAwMDl9.w7igawY4BRsbQpXrU6t3HuWv1e2lOzNmogZ345SYi9M"
 
+    private lateinit var eDialog: CustomDialog<EmojiPickerLayoutBinding>
+
     // List Update Listener
     var onItemClickListListener: ((MessageDataResponse) -> Unit)? = null
 
@@ -119,7 +136,7 @@ class ChatViewModel : ViewModel() {
     var onTypingListener: ((Boolean) -> Unit)? = null
 
     // User Online Status
-    var onUserOnlineListener: ((Boolean) -> Unit)? = null
+    var onUserOnlineListener: ((UserStatusData) -> Unit)? = null
 
     // Active Time
     var onActiveTimeListener: ((ActiveTimeData) -> Unit)? = null
@@ -152,7 +169,7 @@ class ChatViewModel : ViewModel() {
     private var replyImage: String = ""
 
     // Unique Id
-    var uniqueId: String = ""
+    private var uniqueId: String = ""
 
     var currentPhotoPath: String? = null
 
@@ -169,6 +186,10 @@ class ChatViewModel : ViewModel() {
                 if (ChatActivity.isActivity) {
                     val unreadStatus: List<String?> = arrayListOf(it.unique_id ?: it._id)
                     ChatRepository.emitReadStatusListener(sendUnreadData(unreadStatus))
+
+                    val readStatus =
+                        ReadStatusData(ids = arrayListOf(it.unique_id.toString()), readStatus = "3")
+                    onReadStatusListener?.invoke(readStatus)
                 }
             }
         }
@@ -180,6 +201,8 @@ class ChatViewModel : ViewModel() {
         }
 
         ChatRepository.onUserOnlineListener = {
+            if (it.isStatus && it.receiverId == receiverId) mOnlineReadStatus.value = 3
+            else mOnlineReadStatus.value = -1
             onUserOnlineListener?.invoke(it)
         }
 
@@ -201,6 +224,14 @@ class ChatViewModel : ViewModel() {
         ChatRepository.onDeleteMessageListener = {
             onDeleteMessageListener?.invoke(it)
         }
+    }
+
+    fun emitChatConnection() {
+        ChatRepository.emitChatConnection(sendChatConnection(true))
+    }
+
+    fun emitChatDisconnection() {
+        ChatRepository.emitChatDisconnection(sendChatConnection(false))
     }
 
     private fun getReadStatus(chatStatus: String?): Int {
@@ -230,7 +261,7 @@ class ChatViewModel : ViewModel() {
             receiver_id = receiverId,
             unique_id = uniqueId,
             message = getMessageText(),
-            read_status = messageReadStatus.value,
+            read_status = getReadOnlineStatus(),
             status = 1,
             link = getFistLink(getMessageText()),
             msgType = msgType,
@@ -245,6 +276,12 @@ class ChatViewModel : ViewModel() {
         )
         Log.e("TAG", "sendChatMessage: ${Gson().toJson(request)}")
         return ChatActivityRepository.sendMessageApiCall(auth, userId, request)
+    }
+
+    private fun getReadOnlineStatus(): Int {
+        if (onlineReadStatus.value != -1)
+            return onlineReadStatus.value ?: messageReadStatus.value ?: 1
+        return messageReadStatus.value ?: 1
     }
 
     private fun getFistLink(messageText: String): String {
@@ -270,7 +307,7 @@ class ChatViewModel : ViewModel() {
     }
 
     fun emitActiveTime() {
-        ChatRepository.emitActiveTime(sendChatConnection(receiverId, userId))
+        ChatRepository.emitActiveTime(sendChatConnection(false))
     }
 
     fun emitReaction(message: String, data: MessageDataResponse) {
@@ -444,7 +481,7 @@ class ChatViewModel : ViewModel() {
             unique_id = this.uniqueId,
             userId = userId,
             receiverId = receiverId,
-            read_status = messageReadStatus.value ?: 1,
+            read_status = getReadOnlineStatus(),
             message = getMessageText(),
             status = 1,
             link = getFistLink(getMessageText()),
@@ -515,7 +552,7 @@ class ChatViewModel : ViewModel() {
         val sJSONObject = JSONObject()
         sJSONObject.put("receiver_id", receiverId)
         sJSONObject.put("user_id", userId)
-        sJSONObject.put("read_status", 1)
+        sJSONObject.put("read_status", getReadOnlineStatus())
         sJSONObject.put("unique_id", uniqueId)
         sJSONObject.put("message", message)
         sJSONObject.put("status", 1)
@@ -534,11 +571,12 @@ class ChatViewModel : ViewModel() {
         return sJSONObject
     }
 
-    private fun sendChatConnection(receiverId: String, userId: String): JSONObject {
+    private fun sendChatConnection(isConnect: Boolean): JSONObject {
         val cJSONObject = JSONObject()
         cJSONObject.put("receiver_id", receiverId)
-        cJSONObject.put("user_id", userId)
-        Log.e("TAG", "activeTime...: $cJSONObject")
+        if (isConnect) cJSONObject.put("userId", userID)
+        else cJSONObject.put("user_id", userID)
+        Log.e("TAG", "isConnect...: $cJSONObject")
         return cJSONObject
     }
 
@@ -629,7 +667,8 @@ class ChatViewModel : ViewModel() {
         if (isLeft) cvEmoji.visible() else cvEmoji.gone()
 
         mAdapter.onClickListener = {
-            onEmojiUpdateListener?.invoke(it, data)
+            if (it != "+") onEmojiUpdateListener?.invoke(it, data)
+            else emojiPicker(data)
             popupMenu.dismiss()
         }
 
@@ -645,10 +684,49 @@ class ChatViewModel : ViewModel() {
         mAdapter.setData(emojiList)
         mAdapter.notifyDataSetChanged()
 
-        mMenuAdapter.setData(messageMenuList)
+        val menuList = messageMenuList
+        if (isLeft) {
+            if (menuList.size == 4)
+                menuList.removeAt(3)
+        }
+        mMenuAdapter.setData(menuList)
         mMenuAdapter.notifyDataSetChanged()
 
         popupMenu.show()
+    }
+
+    private fun emojiPicker(data: MessageDataResponse) {
+        eDialog = CustomDialog(mActivity, EmojiPickerLayoutBinding::inflate).apply {
+            configureDialog = { dialogBinding ->
+                window?.setLayout(wrapContent, wrapContent)
+                window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                setCanceledOnTouchOutside(true)
+                setCancelable(true)
+
+                window?.setLayout(matchParent, ((getScreenHeight(context) * 0.5).toInt()))
+                window?.setGravity(Gravity.BOTTOM)
+
+                setEmojiPicker(dialogBinding, data)
+
+            }
+        }
+        if (!eDialog.isShowing) eDialog.show()
+    }
+
+    private fun setEmojiPicker(binding: EmojiPickerLayoutBinding, data: MessageDataResponse) {
+        val orientation = mActivity.resources.configuration.orientation
+        val isPortrait = orientation == Configuration.ORIENTATION_LANDSCAPE
+        val emojiPickerView = EmojiPickerView(mActivity).apply {
+            emojiGridColumns = if (isPortrait) 10 else 15
+            layoutParams = ViewGroup.LayoutParams(matchParent, matchParent)
+        }
+
+        binding.apvEmojiPicker.addView(emojiPickerView)
+
+        binding.apvEmojiPicker.setOnEmojiPickedListener {
+            onEmojiUpdateListener?.invoke(it.emoji, data)
+            if (this::eDialog.isInitialized) if (eDialog.isShowing) eDialog.dismiss()
+        }
     }
 
     private fun requestPermission(context: Context) {
@@ -698,15 +776,37 @@ class ChatViewModel : ViewModel() {
         return data.indexOfFirst { it.unique_id == id }
     }
 
-    fun updateReadStatus(list: ArrayList<MessageDataResponse>?) {
-        if (list != null) {
-            if (list.isNotEmpty()) {
-                var unreadStatus =
-                    list.filter { /*it.status != 0 &&*/ it.read_status != 3 && it.unique_id != null }
-                        .map { it.unique_id }
-                unreadStatus = unreadStatus.filter { it.toString().isNotEmpty() }.map { it }
-                if (unreadStatus.isNotEmpty()) {
-                    ChatRepository.emitReadStatusListener(sendUnreadData(unreadStatus))
+    fun updateReadStatus(adapter: MessageItemListAdapter, chatDao: ChatDao) {
+        CoroutineScope(Dispatchers.IO).launch {
+            if (adapter.getAllItems().isNotEmpty()) {
+                val list = adapter.getAllItems() as ArrayList<MessageDataResponse>?
+                if (list != null) {
+                    if (list.isNotEmpty()) {
+                        var unreadStatus =
+                            list.filter { (it.status != 0 || it.read_status != 3) && it.read_status != 3 && it.unique_id != null }
+                                .map { it.unique_id }
+                        unreadStatus.forEach { uniqueId ->
+                            val index = getItemIndex(
+                                adapter.getAllItems() as ArrayList<MessageDataResponse>,
+                                uniqueId.toString()
+                            )
+                            if (index > -1) {
+                                val updateData = adapter.getAllItems()[index]
+                                updateData.read_status = 3
+                                adapter.updateData(index, updateData)
+                                mActivity.runOnUiThread {
+                                    adapter.notifyItemChanged(index, Payload.Update.name)
+                                }
+                                updateChildEntityInParent(
+                                    chatDao, updateData.unique_id.toString(), 3
+                                )
+                            }
+                        }
+                        unreadStatus = unreadStatus.filter { it.toString().isNotEmpty() }.map { it }
+                        if (unreadStatus.isNotEmpty()) {
+                            ChatRepository.emitReadStatusListener(sendUnreadData(unreadStatus))
+                        }
+                    }
                 }
             }
         }
@@ -727,12 +827,15 @@ class ChatViewModel : ViewModel() {
     fun updateLists(
         list: List<MessageDataResponse>,
         ids: MutableList<String>,
-        isClear: Boolean,
         activity: Activity,
         adapter: MessageItemListAdapter,
+        chatDao: ChatDao,
+        isDelete: Boolean,
         onResult: (List<MessageDataResponse>) -> Unit
     ) {
-        ChatActivityRepository.updateLists(list, ids, isClear, adapter, activity, onResult)
+        ChatActivityRepository.updateLists(
+            list, ids, receiverId, chatDao, adapter, activity, isDelete, onResult
+        )
     }
 
     fun updateChildEntityInParent(chatDao: ChatDao, childId: String, ifData: Int) =
@@ -802,17 +905,18 @@ class ChatViewModel : ViewModel() {
                             it.receiverId = receiverId
                             it.response = childrenList
                             chatDao.updateParent(it)
-                            val index =
-                                parentWithChildren.parent.response.indexOfFirst { i -> i.uniqueId == uniqueId }
-                            if (index > -1) Log.e(
-                                "addNewItemToList",
-                                "addNewItemToList--------------$uniqueId"
-                            )
                         }
                     }
                 }
             }
 
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        if (this::eDialog.isInitialized) if (eDialog.isShowing) eDialog.dismiss()
+
+        mOnlineReadStatus.value = -1
     }
 }

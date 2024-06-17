@@ -17,6 +17,7 @@ import com.prng.aeedee_android_chat.STOP_TYPING
 import com.prng.aeedee_android_chat.getOrDefault
 import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.toDataClass
+import com.prng.aeedee_android_chat.view.chat.model.UserStatusData
 import com.prng.aeedee_android_chat.view.chat_message.model.ActiveTimeData
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.ReadStatusData
@@ -42,7 +43,7 @@ object ChatRepository {
 
     var onTypingListener: ((TypingData) -> Unit)? = null
 
-    var onUserOnlineListener: ((Boolean) -> Unit)? = null
+    var onUserOnlineListener: ((UserStatusData) -> Unit)? = null
 
     var onSocketStatus: ((Boolean) -> Unit)? = null
 
@@ -227,15 +228,29 @@ object ChatRepository {
         return fileDataList
     }
 
-    private val onChatConnect = Emitter.Listener { _ ->
+    private val onChatConnect = Emitter.Listener { args ->
         mActivity.runOnUiThread {
-            onUserOnlineListener?.invoke(true)
+            val json = JSONObject(args[0].toString())
+            val receiverId = json.getOrDefault("receiver_id", String())
+            if (receiverId.isNotEmpty()) {
+                val data = JSONObject(args[0].toString()).toDataClass<UserStatusData?>()
+                if (data != null) {
+                    onUserOnlineListener?.invoke(data.copy(isStatus = true))
+                }
+            }
         }
     }
 
-    private val onChatDisconnect = Emitter.Listener { _ ->
+    private val onChatDisconnect = Emitter.Listener { args ->
         mActivity.runOnUiThread {
-            onUserOnlineListener?.invoke(false)
+            val json = JSONObject(args[0].toString())
+            val receiverId = json.getOrDefault("receiver_id", String())
+            if (receiverId.isNotEmpty()) {
+                val data = JSONObject(args[0].toString()).toDataClass<UserStatusData?>()
+                if (data != null) {
+                    onUserOnlineListener?.invoke(data.copy(isStatus = false))
+                }
+            }
         }
     }
 

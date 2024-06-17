@@ -127,20 +127,22 @@ class ChatUserListActivity : AppCompatActivity() {
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-        isPause = true
-        mViewModel.mSearchText = ""
-        binding.aetSearchUser.setText("")
-    }
-
     override fun onResume() {
         super.onResume()
+        mViewModel.emitChatConnection()
         Handler(Looper.myLooper()!!).postDelayed({
             isPause = false
         }, 200)
         val request = ChatUserRequest(limit = 50)
         fetchUserList(request)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        isPause = true
+        mViewModel.emitChatDisconnection()
+        mViewModel.mSearchText = ""
+        binding.aetSearchUser.setText("")
     }
 
     private fun dbUpdateData() {

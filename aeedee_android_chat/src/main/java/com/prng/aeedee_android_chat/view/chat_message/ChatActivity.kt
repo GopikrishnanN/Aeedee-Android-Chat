@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
@@ -42,7 +43,6 @@ import com.prng.aeedee_android_chat.gone
 import com.prng.aeedee_android_chat.hideKeyboardFrom
 import com.prng.aeedee_android_chat.invisible
 import com.prng.aeedee_android_chat.isNetworkConnection
-import com.prng.aeedee_android_chat.matchParent
 import com.prng.aeedee_android_chat.repository.ChatRepository
 import com.prng.aeedee_android_chat.roomdb.deo.ChatDao
 import com.prng.aeedee_android_chat.roomdb.deo.ChatDatabase
@@ -85,6 +85,8 @@ class ChatActivity : AppCompatActivity() {
     private val mViewModel: ChatViewModel by viewModels()
     private lateinit var mAdapter: MessageItemListAdapter
     private lateinit var layoutManager: LinearLayoutManager
+
+    private var mKeyboardListener: ViewTreeObserver.OnGlobalLayoutListener? = null
 
     companion object {
         // User Id
@@ -293,7 +295,6 @@ class ChatActivity : AppCompatActivity() {
 
         mViewModel.onEmojiUpdateListener = { reaction, data ->
             if (reaction != "+") mViewModel.emitReaction(reaction, data)
-//            else additionalEmojiDialog()
         }
 
         mViewModel.onMessageMenuListener = { menu, data ->
@@ -301,10 +302,7 @@ class ChatActivity : AppCompatActivity() {
                 0 -> {
                     // - - Reply - -
                     mViewModel.messageType(
-                        data.unique_id.toString(),
-                        data.message,
-                        data.files,
-                        name
+                        data.unique_id.toString(), data.message, data.files, name
                     )
                     mViewModel.messageType(MessageType.Reply.name)
                     mViewModel.onReplyVisibility()
@@ -317,10 +315,9 @@ class ChatActivity : AppCompatActivity() {
 
                 2 -> {
                     // - - Forward - -
-                    val forwardIntent = Intent(this@ChatActivity, ForwardUsersActivity::class.java)
+                    val forwardIntent = Intent(applicationContext, ForwardUsersActivity::class.java)
                     forwardIntent.putExtra("data", data)
                     startActivity(forwardIntent)
-                    Log.e("TAG", "Forward: ")
                 }
 
                 3 -> {
@@ -332,42 +329,43 @@ class ChatActivity : AppCompatActivity() {
         }
 
         mViewModel.onItemClickListListener = {
-//            mResponse?.let { _ ->
             CoroutineScope(Dispatchers.IO).launch {
                 isSocket = true
 
-                val idAlready =
-                    mAdapter.getAllItems().filter { d -> d.unique_id == it.unique_id }
-                        .map { it.unique_id }
-                if (idAlready.isNotEmpty()) {
-                    return@launch
-                }
-
-                mViewModel.addNewItemToList(it.unique_id.toString(), it, chatDao)
-
-                val processedData: MessageDataResponse =
-                    if (mAdapter.getAllItems().isNotEmpty()) {
-                        mViewModel.addDateTime(it, mAdapter.getAllItems().last().createdAt)
-                    } else {
-                        mViewModel.addDateTime(it, null)
+                try {
+                    val idAlready =
+                        mAdapter.getAllItems().filter { d -> d.unique_id == it.unique_id }
+                            .map { it.unique_id }
+                    if (idAlready.isNotEmpty()) {
+                        return@launch
                     }
 
-                mAdapter.addData(processedData)
-                mActivityBinding.aivNoMessageIcon.gone()
+                    mViewModel.addNewItemToList(it.unique_id.toString(), it, chatDao)
 
-                setDbNewMessage()
+                    val processedData: MessageDataResponse =
+                        if (mAdapter.getAllItems().isNotEmpty()) {
+                            mViewModel.addDateTime(it, mAdapter.getAllItems().last().createdAt)
+                        } else {
+                            mViewModel.addDateTime(it, null)
+                        }
 
-//                setDbResponse(arrayListOf(processedData), false)
+                    mAdapter.addData(processedData)
+                    mActivityBinding.aivNoMessageIcon.gone()
 
-                val recyclerViewState = onSaveInstanceRV()
-                runOnUiThread {
-                    mAdapter.notifyItemChanged(
-                        (this@ChatActivity.mResponse!!.size - 1), Payload.Update.name
-                    )
+                    setDbNewMessage()
+
+                    val recyclerViewState = onSaveInstanceRV()
+                    runOnUiThread {
+                        if ((mAdapter.getAllItems().size - 1) > -1)
+                            mAdapter.notifyItemChanged(
+                                (mAdapter.getAllItems().size - 1), Payload.Update.name
+                            )
+                    }
+                    onRestoreInstance(recyclerViewState)
+
+                    scrollList()
+                } catch (_: Exception) {
                 }
-                onRestoreInstance(recyclerViewState)
-
-                scrollList()
             }
         }
 
@@ -386,7 +384,7 @@ class ChatActivity : AppCompatActivity() {
         }
 
         mViewModel.onUserOnlineListener = {
-            onlineStatus(it)
+            mViewModel.updateReadStatus(mAdapter, chatDao)
         }
 
         mActivityBinding.aivBack.setOnClickListener {
@@ -396,6 +394,7 @@ class ChatActivity : AppCompatActivity() {
         mViewModel.onActiveTimeListener = {
             val chatStatus = it.chatStatus.toString().replace("_", "")
             mActivityBinding.atvMessage.text = chatStatus
+            mActivityBinding.atvMessage.invalidate()
             if (chatStatus == "offline") {
                 val color = ContextCompat.getColor(applicationContext, R.color.black)
                 mActivityBinding.atvMessage.setTextColor(color)
@@ -404,6 +403,21 @@ class ChatActivity : AppCompatActivity() {
                 mActivityBinding.atvMessage.setTextColor(color)
             }
         }
+
+        mKeyboardListener = ViewTreeObserver.OnGlobalLayoutListener {
+            val r = Rect()
+            mActivityBinding.root.getWindowVisibleDisplayFrame(r)
+            val screenHeight = mActivityBinding.root.rootView.height
+            val keypadHeight = screenHeight - r.bottom
+            if (keypadHeight > screenHeight * 0.15) {
+                mActivityBinding.aivCamera.gone()
+                mActivityBinding.aivGallery.gone()
+            } else {
+                mActivityBinding.aivCamera.visible()
+                mActivityBinding.aivGallery.visible()
+            }
+        }
+        mActivityBinding.root.viewTreeObserver.addOnGlobalLayoutListener(mKeyboardListener)
 
         mViewModel.onReadStatusListener = {
             CoroutineScope(Dispatchers.IO).launch {
@@ -414,10 +428,9 @@ class ChatActivity : AppCompatActivity() {
                             if (list.isNotEmpty()) {
                                 val position = mViewModel.getItemIndex(list as ArrayList, id)
                                 if (position > -1) {
-                                    val fullList =
-                                        list.filter { r -> r.unique_id == id } as ArrayList<MessageDataResponse>
-
-                                    fullList.forEach { rs -> rs.read_status = 3 }
+//                                    val fullList =
+//                                        list.filter { r -> r.unique_id == id } as ArrayList<MessageDataResponse>
+//                                    fullList.forEach { rs -> rs.read_status = 3 }
 
                                     mResponse =
                                         list.map { rs -> rs.copy(read_status = 3) } as ArrayList<MessageDataResponse>
@@ -445,10 +458,13 @@ class ChatActivity : AppCompatActivity() {
 
         mViewModel.onDeleteMessageListener = { data ->
             mAdapter.getAllItems().let {
-                mViewModel.updateLists(it, data.ids!!.toMutableList(), false, this, mAdapter) {
+                loader(2)
+                mViewModel.updateLists(
+                    it, data.ids!!.toMutableList(), this, mAdapter, chatDao, true
+                ) {
                     dismiss()
                     deleteMessageSelection(false)
-                    setDbResponse(mAdapter.getAllItems(), false)
+//                    setDbResponse(list, false)
                 }
             }
         }
@@ -470,22 +486,19 @@ class ChatActivity : AppCompatActivity() {
         mActivityBinding.clDeleteChat.setOnClickListener {
             val selectedIds = mAdapter.getSelectedIds().toMutableList()
             mViewModel.emitDeleteMessage(selectedIds)
-
-//            val request = DeleteMessageRequest(ids = selectedIds)
-//            deleteMessage(request)
-
-//            mResponse?.let {
-            mViewModel.updateLists(mAdapter.getAllItems(), selectedIds, false, this, mAdapter) {
+            loader(2)
+            mViewModel.updateLists(
+                mAdapter.getAllItems(), selectedIds, this, mAdapter, chatDao, true
+            ) {
                 dismiss()
                 deleteMessageSelection(false)
-                setDbResponse(mAdapter.getAllItems(), false)
+//                setDbResponse(it, false)
             }
-//            }
         }
 
         mActivityBinding.atvCancelSelection.setOnClickListener {
             val list = mAdapter.getSelectedIds().toMutableList()
-            mViewModel.updateLists(mResponse!!, list, true, this, mAdapter) {
+            mViewModel.updateLists(mAdapter.getAllItems(), list, this, mAdapter, chatDao, false) {
                 deleteMessageSelection(false)
             }
         }
@@ -496,10 +509,6 @@ class ChatActivity : AppCompatActivity() {
             val list = mAdapter.getAllItems() as ArrayList
             val (parentData, childData) = getParentData(list)
             chatDao.updateParentWithChildren(parentData, childData)
-
-            val parentWithChildren = chatDao.getParentWithChildren(receiverId)
-            Log.e("TAG", "setDbNewMessage: ${parentWithChildren.children!!.size}")
-            Log.e("TAG", "setDbNewMessage: ${parentWithChildren.parent!!.response.size}")
         }
     }
 
@@ -507,9 +516,7 @@ class ChatActivity : AppCompatActivity() {
         if (mAdapter.getAllItems() != null)
             if (mAdapter.getAllItems().size > position) {
                 mAdapter.updateData(position, mAdapter.getAllItems()[position])
-//                val recyclerViewState = onSaveInstanceRV()
                 runOnUiThread { mAdapter.notifyItemChanged(position, Payload.Update.name) }
-//                onRestoreInstance(recyclerViewState)
             }
     }
 
@@ -671,10 +678,10 @@ class ChatActivity : AppCompatActivity() {
                 if (isFirstLocalDb) {
                     setDbResponse(it.response)
                 } else {
-                    if (isRecent) {
-                        if (it.response.size > 49)
-                            isFirstLocalDb = true
-                    }
+//                    if (isRecent) {
+                    if (it.response.size > 49)
+                        isFirstLocalDb = true
+//                    }
                     setDbResponse(it.response, true)
                 }
             }
@@ -743,7 +750,7 @@ class ChatActivity : AppCompatActivity() {
                 val uniqueDataList: ArrayList<MessageDataResponse> = arrayListOf()
 
                 for (data in list) {
-                    if (idSet.add(data.unique_id.toString())) { // add returns false if the element is already present
+                    if (idSet.add(data.unique_id.toString())) {
                         uniqueDataList.add(data)
                     }
                 }
@@ -762,7 +769,7 @@ class ChatActivity : AppCompatActivity() {
     private fun setUiData(responses: List<MessageDataResponse>) {
         mActivityBinding.aivNoMessageIcon.gone()
         if (responses.isNotEmpty()) {
-            Log.e("TAG", "setUiDataResponses: ${responses.size}")
+            Log.e("TAG", "setUiData: ${mResponse!!.size}")
             if (mResponse!!.isEmpty()) {
                 mResponse?.clear()
                 runBlocking {
@@ -810,11 +817,11 @@ class ChatActivity : AppCompatActivity() {
                 mActivityBinding.rvChatMessageList.visible()
             }
 //            if (readStatusEmitCount < 2) {
-            if (mAdapter.getAllItems().isNotEmpty()) {
+//            if (mAdapter.getAllItems().isNotEmpty()) {
 //                    readStatusEmitCount += 1
-                mViewModel.updateReadStatus(mAdapter.getAllItems() as ArrayList<MessageDataResponse>)
+//                mViewModel.updateReadStatus(mAdapter.getAllItems() as ArrayList<MessageDataResponse>)
 //                }
-            }
+//            }
         } else {
             if (mResponse!!.isEmpty()) {
                 mActivityBinding.aivNoMessageIcon.visible()
@@ -849,18 +856,6 @@ class ChatActivity : AppCompatActivity() {
                 }, 100)
             }
         })
-    }
-
-    private fun onlineStatus(isOnline: Boolean) {
-        if (isOnline) {
-            mActivityBinding.aivProfileImage.borderWidth = 5
-            mActivityBinding.aivProfileImage.borderColor =
-                ContextCompat.getColor(this, R.color.blue)
-        } else {
-            mActivityBinding.aivProfileImage.borderWidth = 0
-            mActivityBinding.aivProfileImage.borderColor =
-                ContextCompat.getColor(this, android.R.color.transparent)
-        }
     }
 
     private fun typingLoading(isTyping: Boolean) {
@@ -955,7 +950,7 @@ class ChatActivity : AppCompatActivity() {
             if (data != null) {
                 mResponse?.apply {
                     val list = request.ids!!.toMutableList()
-                    mViewModel.updateLists(this, list, false, this@ChatActivity, mAdapter) {
+                    mViewModel.updateLists(this, list, this@ChatActivity, mAdapter, chatDao, true) {
                         dismiss()
                         deleteMessageSelection(false)
                         setDbResponse(mResponse!!, false)
@@ -989,31 +984,6 @@ class ChatActivity : AppCompatActivity() {
             lDialog.show()
     }
 
-    private fun additionalEmojiDialog() {
-        eDialog = CustomDialog(this, UpdateEmojiReactionLayoutBinding::inflate).apply {
-            configureDialog = { dialogBinding ->
-                window?.setLayout(matchParent, wrapContent)
-                window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-                setCanceledOnTouchOutside(true)
-                setCancelable(true)
-
-                val popup = EmojiPopup.Builder.fromRootView(dialogBinding.clEmojiLayout)
-                    .build(dialogBinding.tvEmojiView)
-
-                dialogBinding.emojiButton.setOnClickListener {
-                    popup.toggle()
-                }
-
-                Handler(Looper.myLooper()!!).postDelayed({
-                    if (!popup.isShowing)
-                        popup.toggle()
-                }, 500)
-            }
-        }
-        if (!eDialog.isShowing)
-            eDialog.show()
-    }
-
     private fun dismiss() {
         if (this::lDialog.isInitialized)
             if (lDialog.isShowing)
@@ -1024,29 +994,29 @@ class ChatActivity : AppCompatActivity() {
                 eDialog.dismiss()
     }
 
-//    private fun convertToMessageDataResponseList(list: List<*>): List<DatabaseMessageModel> {
-//        return list.fold(mutableListOf()) { acc, item ->
-//            if (item is DatabaseMessageModel) {
-//                acc.add(item)
-//            }
-//            acc
-//        }
-//    }
-
     override fun onResume() {
         super.onResume()
         isActivity = true
+
         if ((SocketHandler.getSocket().connected()))
             if (this::scheduler.isInitialized)
                 scheduler.start()
+
+        Handler(Looper.myLooper()!!).postDelayed({
+            if (isActivity)
+                mViewModel.emitChatConnection()
+        }, 100)
     }
 
     override fun onPause() {
         super.onPause()
         isActivity = false
+
         if ((SocketHandler.getSocket().connected()))
             if (this::scheduler.isInitialized)
                 scheduler.pause()
+
+        mViewModel.emitChatDisconnection()
     }
 
     override fun onDestroy() {

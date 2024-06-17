@@ -69,7 +69,16 @@ enum class Payload {
 }
 
 // Local Emoji List
-val emojiList = arrayListOf("😂", "😄", "😍", "😨", "😔", "😡"/*, "+"*/)
+//val emojiList = arrayListOf("😂", "😄", "😍", "😨", "😔", "😡"/*, "+"*/)
+//val emojiList = arrayListOf("&#x1F604;", "&#x1FAE3;", "&#x1F614;", "&#x1F62E;", "&#x1F621;)
+val emojiList = arrayListOf(
+    "\uD83D\uDE04",  // Smiley 😄
+    "\uD83E\uDEE3",  // One eye open 🫣
+    "\uD83D\uDE14",  // Sad 😔
+    "\uD83D\uDE2E",  // Shock 😮
+    "\uD83D\uDE21",  // Angry 😡
+    "+"              // Plus ➕
+)
 
 // Local Message Menu List
 val messageMenuList = arrayListOf(
@@ -182,6 +191,14 @@ fun copyToClipboard(text: String, context: Context) {
     val clip = ClipData.newPlainText("Copied Text", text)
     clipboard?.setPrimaryClip(clip)
     Toast.makeText(context, "Message copied", Toast.LENGTH_SHORT).show()
+}
+
+// Function to get screen height
+fun getScreenHeight(context: Context): Int {
+    val displayMetrics = DisplayMetrics()
+    (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
+        .defaultDisplay.getMetrics(displayMetrics)
+    return displayMetrics.heightPixels
 }
 
 // Function to get screen width

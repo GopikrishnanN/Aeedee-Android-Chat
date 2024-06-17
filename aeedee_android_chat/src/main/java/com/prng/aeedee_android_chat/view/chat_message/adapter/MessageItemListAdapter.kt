@@ -54,6 +54,10 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     fun updateData(position: Int, list: MessageDataResponse) {
         (mList as ArrayList)[position] = list
+        Log.e(
+            "${mList!![position].unique_id}",
+            "MessageDataResponse:updateData-----------${mList!![position].read_status}"
+        )
     }
 
     fun getAllItems(): List<MessageDataResponse> {
@@ -250,7 +254,6 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is LeftTextViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-//                binding.executePendingBindings()
 
                 binding.clLeftTexLayout.setOnLongClickListener {
                     if (!isSelection) {
@@ -266,23 +269,11 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     return@setOnLongClickListener true
                 }
 
-                binding.clSelectionLayout.setOnClickListener {
-                    if (isSelection) {
-                        selectionMessage(binding.aivSelectMessage, position)
-                    }
-                }
-
-                binding.atvLeftTextMessage.setOnClickListener {
-                    if (isSelection) {
-                        selectionMessage(binding.aivSelectMessage, position)
-                    }
-                }
             }
 
             is RightTextViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-//                binding.executePendingBindings()
 
                 binding.clMessageViewLayout.setOnLongClickListener {
                     if (!isSelection) {
@@ -309,9 +300,6 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 binding.data = mList!![position]
                 binding.receiverId = mUserData
 
-                Log.e("TAG", "onBindViewHolder:receiverId ${mList!![position].replyImage}")
-//                binding.executePendingBindings()
-
                 setConstraintLayoutWidthToPercent(binding.root.context, binding.clOverlayLayout)
 
                 if (mList!![position].replyImage!!.isNotEmpty())
@@ -324,27 +312,12 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     }
                     return@setOnLongClickListener true
                 }
-
-                binding.clSelectionLayout.setOnClickListener {
-                    if (isSelection) {
-                        selectionMessage(binding.aivSelectMessage, position)
-                    }
-                }
-
-                binding.clOverlayLayout.setOnClickListener {
-                    if (isSelection) {
-                        selectionMessage(binding.aivSelectMessage, position)
-                    }
-                }
             }
 
             is RightReplyViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
                 binding.receiverId = mUserData
-
-                Log.e("TAG", "onBindViewHolder:receiverId ${mList!![position].replyImage}")
-//                binding.executePendingBindings()
 
                 setConstraintLayoutWidthToPercent(binding.root.context, binding.clOverlayLayout)
 
@@ -375,7 +348,6 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is LeftImageViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-//                binding.executePendingBindings()
 
                 binding.clMessageLayout.setOnLongClickListener {
                     if (!isSelection) {
@@ -383,21 +355,6 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     }
                     return@setOnLongClickListener true
                 }
-
-                binding.clSelectionLayout.setOnClickListener {
-                    if (isSelection) {
-                        selectionMessage(binding.aivSelectMessage, position)
-                    }
-                }
-
-                binding.clMessageLayout.setOnClickListener {
-                    if (isSelection) {
-                        selectionMessage(binding.aivSelectMessage, position)
-                    }
-                }
-
-//                val radius = 50f // Adjust the radius as needed
-//                val mask = SideCurvedDrawable(radius)
 
                 val circularProgressDrawable =
                     CircularProgressDrawable(binding.root.context).apply {
@@ -416,34 +373,11 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     .load(mList!![position].files!!.first().url)
                     .placeholder(circularProgressDrawable)
                     .into(binding.aivMessageImage)
-
-//                    .into(object : CustomTarget<Bitmap>() {
-//                        override fun onResourceReady(
-//                            resource: Bitmap,
-//                            transition: Transition<in Bitmap>?
-//                        ) {
-//                            val output = Bitmap.createBitmap(
-//                                resource.width, resource.height, Bitmap.Config.ARGB_8888
-//                            )
-//                            val canvas = Canvas(output)
-//                            mask.setBounds(0, 0, canvas.width, canvas.height)
-//                            mask.draw(canvas)
-//                            val paint = Paint()
-//                            paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-//                            canvas.drawBitmap(resource, 0f, 0f, paint)
-//                            binding.aivMessageImage.setImageBitmap(output)
-//                        }
-//
-//                        override fun onLoadCleared(placeholder: Drawable?) {
-//                            // Handle cleanup if needed
-//                        }
-//                    })
             }
 
             is RightImageViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
-//                binding.executePendingBindings()
 
                 binding.clMessageLayout.setOnLongClickListener {
                     if (!isSelection) {
@@ -529,18 +463,6 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                         onLongClickListener?.invoke(mList!![position], binding.clLeftTextMessage)
                     }
                     return@setOnLongClickListener true
-                }
-
-                binding.clSelectionLayout.setOnClickListener {
-                    if (isSelection) {
-                        selectionMessage(binding.aivSelectMessage, position)
-                    }
-                }
-
-                binding.atvLeftTextMessage.setOnClickListener {
-                    if (isSelection) {
-                        selectionMessage(binding.aivSelectMessage, position)
-                    }
                 }
             }
 

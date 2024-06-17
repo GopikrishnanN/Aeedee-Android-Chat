@@ -68,7 +68,7 @@ class ChatUserListViewModel : ViewModel() {
         ChatRepository.initSocket(activity)
     }
 
-    private fun emitChatConnection() {
+    fun emitChatConnection() {
         ChatRepository.emitChatConnection(sendChatConnection(true))
     }
 
@@ -104,9 +104,9 @@ class ChatUserListViewModel : ViewModel() {
             val parentWithChildren = chatDao.getParentWithChildren(parentId)
 
             if (parentWithChildren != null) {
-                if (parentWithChildren.children != null) {
+                if (parentWithChildren.parent != null) {
                     val childToUpdate =
-                        parentWithChildren.children.find { it.uniqueId == childId }
+                        parentWithChildren.parent.response.find { it.uniqueId == childId }
 
                     if (ifData == 1)
                         childToUpdate?.status = 0
@@ -117,12 +117,12 @@ class ChatUserListViewModel : ViewModel() {
                         chatDao.updateChildren(childToUpdate)
 
                         val index =
-                            parentWithChildren.children.indexOfFirst { it.uniqueId == childId }
-                        val childrenList = parentWithChildren.children.toMutableList()
+                            parentWithChildren.parent.response.indexOfFirst { it.uniqueId == childId }
+                        val childrenList = parentWithChildren.parent.response.toMutableList()
                         if (index != -1) {
                             val parentToUpdate = parentWithChildren.parent
                             childrenList[index] = childToUpdate
-                            parentToUpdate?.let {
+                            parentToUpdate.let {
                                 it.receiverId = parentId
                                 it.response = childrenList
                                 chatDao.updateParent(it)
