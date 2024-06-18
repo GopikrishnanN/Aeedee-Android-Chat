@@ -428,9 +428,6 @@ class ChatActivity : AppCompatActivity() {
                             if (list.isNotEmpty()) {
                                 val position = mViewModel.getItemIndex(list as ArrayList, id)
                                 if (position > -1) {
-//                                    val fullList =
-//                                        list.filter { r -> r.unique_id == id } as ArrayList<MessageDataResponse>
-//                                    fullList.forEach { rs -> rs.read_status = 3 }
 
                                     mResponse =
                                         list.map { rs -> rs.copy(read_status = 3) } as ArrayList<MessageDataResponse>

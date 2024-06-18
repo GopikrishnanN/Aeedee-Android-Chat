@@ -54,10 +54,6 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     fun updateData(position: Int, list: MessageDataResponse) {
         (mList as ArrayList)[position] = list
-        Log.e(
-            "${mList!![position].unique_id}",
-            "MessageDataResponse:updateData-----------${mList!![position].read_status}"
-        )
     }
 
     fun getAllItems(): List<MessageDataResponse> {
