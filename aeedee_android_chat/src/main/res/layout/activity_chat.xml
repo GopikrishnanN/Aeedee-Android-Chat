@@ -129,16 +129,24 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/aivNoMessageIcon"
-                android:layout_width="wrap_content"
+            <ScrollView
+                android:id="@+id/svNoMessageIcon"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/no_message_icon"
-                android:visibility="gone"
+                android:visibility="visible"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/aivNoMessageIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:background="@drawable/no_message_icon" />
+
+            </ScrollView>
 
             <ProgressBar
                 android:id="@+id/pbProgress"

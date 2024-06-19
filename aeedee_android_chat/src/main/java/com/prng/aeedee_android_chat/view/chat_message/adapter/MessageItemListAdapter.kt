@@ -1,6 +1,5 @@
 package com.prng.aeedee_android_chat.view.chat_message.adapter
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -84,10 +83,10 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         val data = mList!![position]
         val isLeftMessage = data.userId != ChatActivity.userId
 
-        return if (!isLeftMessage && data.chat_type == "forward") 9 // Right Forward
-        else if (isLeftMessage && data.chat_type == "forward") 8 // Left Forward
-        else if (!isLeftMessage && data.status == 0) 7 // Right Deleted
+        return if (!isLeftMessage && data.status == 0) 7 // Right Deleted
         else if (isLeftMessage && data.status == 0) 6 // Left Deleted
+        else if (!isLeftMessage && data.chat_type == "forward") 9 // Right Forward
+        else if (isLeftMessage && data.chat_type == "forward") 8 // Left Forward
         else if (!isLeftMessage && getFileStatus(data.files)) 5 // Right Images
         else if (isLeftMessage && getFileStatus(data.files)) 4 // Left Images
         else if (!isLeftMessage && getRepliedStatus(data)) 3 // Right Replied

@@ -233,13 +233,13 @@ class ChatActivity : AppCompatActivity() {
                     } else {
                         setUiData(emptyList())
                         mActivityBinding.pbProgress.visible()
-                        mActivityBinding.aivNoMessageIcon.gone()
+                        mActivityBinding.svNoMessageIcon.gone()
                         isFirstLocalDb = false
                         fetchMessageApi(lastId, 0)
                     }
                 } else {
                     mActivityBinding.pbProgress.visible()
-                    mActivityBinding.aivNoMessageIcon.gone()
+                    mActivityBinding.svNoMessageIcon.gone()
                     isFirstLocalDb = false
                     fetchMessageApi(lastId, 0)
                 }
@@ -350,16 +350,21 @@ class ChatActivity : AppCompatActivity() {
                         }
 
                     mAdapter.addData(processedData)
-                    mActivityBinding.aivNoMessageIcon.gone()
+                    mActivityBinding.rvChatMessageList.visible()
+                    mActivityBinding.svNoMessageIcon.gone()
 
                     setDbNewMessage()
 
                     val recyclerViewState = onSaveInstanceRV()
                     runOnUiThread {
-                        if ((mAdapter.getAllItems().size - 1) > -1)
-                            mAdapter.notifyItemChanged(
-                                (mAdapter.getAllItems().size - 1), Payload.Update.name
-                            )
+                        if (mAdapter.getAllItems().size == 1) {
+                            mAdapter.notifyDataSetChanged()
+                        } else {
+                            if ((mAdapter.getAllItems().size - 1) > -1)
+                                mAdapter.notifyItemChanged(
+                                    (mAdapter.getAllItems().size - 1), Payload.Update.name
+                                )
+                        }
                     }
                     onRestoreInstance(recyclerViewState)
 
@@ -431,6 +436,8 @@ class ChatActivity : AppCompatActivity() {
 
                                     mResponse =
                                         list.map { rs -> rs.copy(read_status = 3) } as ArrayList<MessageDataResponse>
+
+                                    mAdapter.setData(mResponse!!)
 
                                     updateReadStatus(position)
 
@@ -576,7 +583,7 @@ class ChatActivity : AppCompatActivity() {
             val list = mAdapter.getAllItems()
             for (i in list.indices) {
                 if (list[i].unique_id == data.unique_id) {
-                    list[i].isSelectEnable = !list[i].isSelectEnable
+                    list[i].isSelectEnable = true
                     mAdapter.selectMessage(list[i], i)
                     runOnUiThread {
                         mAdapter.notifyItemChanged(i, Payload.Update.name)
@@ -709,7 +716,7 @@ class ChatActivity : AppCompatActivity() {
                         }
                     }
                 } else if (mResponse!!.isEmpty()) {
-                    mActivityBinding.aivNoMessageIcon.visible()
+                    mActivityBinding.svNoMessageIcon.visible()
                 }
         }
     }
@@ -764,7 +771,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun setUiData(responses: List<MessageDataResponse>) {
-        mActivityBinding.aivNoMessageIcon.gone()
+        mActivityBinding.svNoMessageIcon.gone()
         if (responses.isNotEmpty()) {
             Log.e("TAG", "setUiData: ${mResponse!!.size}")
             if (mResponse!!.isEmpty()) {
@@ -821,7 +828,7 @@ class ChatActivity : AppCompatActivity() {
 //            }
         } else {
             if (mResponse!!.isEmpty()) {
-                mActivityBinding.aivNoMessageIcon.visible()
+                mActivityBinding.svNoMessageIcon.visible()
             }
         }
     }

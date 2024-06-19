@@ -684,7 +684,8 @@ class ChatViewModel : ViewModel() {
         mAdapter.setData(emojiList)
         mAdapter.notifyDataSetChanged()
 
-        val menuList = messageMenuList
+        val menuList: ArrayList<MessageMenuData> = arrayListOf()
+        menuList.addAll(messageMenuList)
         if (isLeft) {
             if (menuList.size == 4)
                 menuList.removeAt(3)
