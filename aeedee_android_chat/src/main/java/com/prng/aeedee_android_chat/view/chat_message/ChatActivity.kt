@@ -392,12 +392,22 @@ class ChatActivity : AppCompatActivity() {
             mViewModel.updateReadStatus(mAdapter, chatDao)
         }
 
+        mViewModel.onFocusableListener = {
+            if (it) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    mActivityBinding.clChatBox.isFocusable = true
+                    mActivityBinding.clChatBox.isFocusableInTouchMode = true
+                }
+            }
+        }
+
         mActivityBinding.aivBack.setOnClickListener {
             finish()
         }
 
         mViewModel.onActiveTimeListener = {
             val chatStatus = it.chatStatus.toString().replace("_", "")
+            Log.e("onActiveTimeListener", "onActiveTimeListener: $chatStatus")
             mActivityBinding.atvMessage.text = chatStatus
             mActivityBinding.atvMessage.invalidate()
             if (chatStatus == "offline") {
@@ -420,6 +430,9 @@ class ChatActivity : AppCompatActivity() {
             } else {
                 mActivityBinding.aivCamera.visible()
                 mActivityBinding.aivGallery.visible()
+                if (mActivityBinding.aetEditMessage.text!!.isEmpty()) {
+                    mActivityBinding.aetEditMessage.clearFocus()
+                }
             }
         }
         mActivityBinding.root.viewTreeObserver.addOnGlobalLayoutListener(mKeyboardListener)
@@ -984,18 +997,21 @@ class ChatActivity : AppCompatActivity() {
                 }
             }
         }
-        if (!lDialog.isShowing)
-            lDialog.show()
+        if (isActivity)
+            if (!lDialog.isShowing)
+                lDialog.show()
     }
 
     private fun dismiss() {
-        if (this::lDialog.isInitialized)
-            if (lDialog.isShowing)
-                lDialog.dismiss()
+        if (isActivity) {
+            if (this::lDialog.isInitialized)
+                if (lDialog.isShowing)
+                    lDialog.dismiss()
 
-        if (this::eDialog.isInitialized)
-            if (eDialog.isShowing)
-                eDialog.dismiss()
+            if (this::eDialog.isInitialized)
+                if (eDialog.isShowing)
+                    eDialog.dismiss()
+        }
     }
 
     override fun onResume() {
@@ -1009,7 +1025,7 @@ class ChatActivity : AppCompatActivity() {
         Handler(Looper.myLooper()!!).postDelayed({
             if (isActivity)
                 mViewModel.emitChatConnection()
-        }, 100)
+        }, 200)
     }
 
     override fun onPause() {

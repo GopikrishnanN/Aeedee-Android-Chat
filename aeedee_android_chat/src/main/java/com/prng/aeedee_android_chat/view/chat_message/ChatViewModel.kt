@@ -11,12 +11,15 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.text.Editable
 import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -38,6 +41,7 @@ import com.prng.aeedee_android_chat.getScreenHeight
 import com.prng.aeedee_android_chat.getTimeZone
 import com.prng.aeedee_android_chat.getUniqueId
 import com.prng.aeedee_android_chat.gone
+import com.prng.aeedee_android_chat.hideKeyboardFrom
 import com.prng.aeedee_android_chat.isNetworkConnection
 import com.prng.aeedee_android_chat.matchParent
 import com.prng.aeedee_android_chat.messageMenuList
@@ -155,6 +159,9 @@ class ChatViewModel : ViewModel() {
 
     // Message Text
     var onMessageTextListener: ((String) -> Unit)? = null
+
+    //  EditBox Focusable
+    var onFocusableListener: ((Boolean) -> Unit)? = null
 
     // Message Type // normal, forward, reply
     private var msgType: String = MessageType.Normal.name.lowercase(Locale.getDefault())
@@ -454,7 +461,7 @@ class ChatViewModel : ViewModel() {
             }
     }
 
-    fun onSendClickListener(view: View) {
+    fun onSendClickListener(view: AppCompatImageView) {
         if (!isNetworkConnection(view.context)) {
 
             val message = view.context.resources.getString(R.string.no_internet_connection)
@@ -473,6 +480,10 @@ class ChatViewModel : ViewModel() {
                 messageEventListener()
             }
         }
+        Handler(Looper.myLooper()!!).postDelayed({
+            onFocusableListener?.invoke(true)
+            hideKeyboardFrom(mActivity, view)
+        }, 100)
     }
 
     fun messageEventListener(id: String = "") {

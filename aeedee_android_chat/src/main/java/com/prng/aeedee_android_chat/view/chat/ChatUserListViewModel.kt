@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import com.prng.aeedee_android_chat.repository.ChatActivityRepository
 import com.prng.aeedee_android_chat.repository.ChatRepository
 import com.prng.aeedee_android_chat.roomdb.deo.ChatDao
+import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageModel
 import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.userID
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
@@ -95,68 +96,75 @@ class ChatUserListViewModel : ViewModel() {
         onSearchListener?.invoke(request)
     }
 
-    fun updateChildEntityInParent(
-        chatDao: ChatDao, parentId: String, childId: String, ifData: Int,
-        reaction: DatabaseReactionData? = null
-    ) =
-        CoroutineScope(Dispatchers.IO).launch {
-
-            val parentWithChildren = chatDao.getParentWithChildren(parentId)
-
-            if (parentWithChildren != null) {
-                if (parentWithChildren.parent != null) {
-                    val childToUpdate =
-                        parentWithChildren.parent.response.find { it.uniqueId == childId }
-
-                    if (ifData == 1)
-                        childToUpdate?.status = 0
-                    else if (ifData == 2)
-                        childToUpdate?.reaction = arrayListOf(reaction!!)
-
-                    if (childToUpdate != null) {
-                        chatDao.updateChildren(childToUpdate)
-
-                        val index =
-                            parentWithChildren.parent.response.indexOfFirst { it.uniqueId == childId }
-                        val childrenList = parentWithChildren.parent.response.toMutableList()
-                        if (index != -1) {
-                            val parentToUpdate = parentWithChildren.parent
-                            childrenList[index] = childToUpdate
-                            parentToUpdate.let {
-                                it.receiverId = parentId
-                                it.response = childrenList
-                                chatDao.updateParent(it)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-//    private suspend fun getReactionUpdates(
-//        reactionList: MutableList<DatabaseReactionData>?, reaction: DatabaseReactionData?
-//    ): MutableList<DatabaseReactionData>? =
-//        suspendCoroutine { continuation ->
-//            CoroutineScope(Dispatchers.IO).launch {
-//                if (reactionList != null) {
-//                    if (reactionList.isNotEmpty()) {
-//                        reactionList.forEachIndexed { index, data ->
-//                            if (data.userId == reaction?.userId) {
-//                                reactionList[index].message = reaction?.message.toString()
+//    fun updateChildEntityInParent(
+//        chatDao: ChatDao, parentId: String, childId: String, ifData: Int,
+//        reaction: DatabaseReactionData? = null
+//    ) =
+//        CoroutineScope(Dispatchers.IO).launch {
+//
+//            val parentWithChildren = chatDao.getParentWithChildren(parentId)
+//
+//            if (parentWithChildren != null) {
+//                if (parentWithChildren.parent != null) {
+//                    val childToUpdate =
+//                        parentWithChildren.parent.response.find { it.uniqueId == childId }
+//
+//                    if (ifData == 1)
+//                        childToUpdate?.status = 0
+//                    else if (ifData == 2)
+//                        childToUpdate?.reaction = arrayListOf(reaction!!)
+//
+//                    if (childToUpdate != null) {
+//                        chatDao.updateChildren(childToUpdate)
+//
+//                        val index =
+//                            parentWithChildren.parent.response.indexOfFirst { it.uniqueId == childId }
+//                        val childrenList = parentWithChildren.parent.response.toMutableList()
+//                        if (index != -1) {
+//                            val parentToUpdate = parentWithChildren.parent
+//                            childrenList[index] = childToUpdate
+//                            parentToUpdate.let {
+//                                it.receiverId = parentId
+//                                it.response = childrenList
+//                                chatDao.updateParent(it)
 //                            }
 //                        }
-//                        continuation.resume(reactionList)
-//                    } else {
-//                        reaction?.let {
-//                            reactionList.add(it)
-//                            continuation.resume(reactionList)
-//                        }
-//                    }
-//                } else {
-//                    reaction?.let {
-//                        continuation.resume(arrayListOf(it))
 //                    }
 //                }
 //            }
 //        }
+
+    fun updateChildEntityInParent(
+        chatDao: ChatDao, childIds: List<String>, receiverId: String,
+        reaction: DatabaseReactionData? = null, ifData: Int
+    ) = CoroutineScope(Dispatchers.IO).launch {
+        val idsSet = childIds.toSet()
+        val parentWithChildren = chatDao.getParentWithChildren(receiverId)
+
+        if (parentWithChildren != null) {
+            if (parentWithChildren.parent?.response != null) {
+
+                val childToUpdate: MutableList<DatabaseMessageModel> =
+                    parentWithChildren.parent.response.map {
+                        if (ifData == 1 && idsSet.contains(it.uniqueId)) it.status = 0
+                        if (ifData == 2 && idsSet.contains(it.uniqueId)) it.reaction = arrayListOf(reaction!!)
+                        chatDao.updateChildren(it)
+                        it
+                    }.toMutableList()
+
+                if (childToUpdate != null) {
+                    try {
+                        val parentToUpdate = parentWithChildren.parent
+                        parentToUpdate.let {
+                            it.receiverId = receiverId
+                            it.response = childToUpdate
+                            chatDao.updateParent(it)
+                        }
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        }
+    }
+
 }

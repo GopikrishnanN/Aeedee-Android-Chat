@@ -34,6 +34,7 @@ import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.UserDataResponse
 import com.prng.aeedee_android_chat.view.chat.model.asDatabaseModel
 import com.prng.aeedee_android_chat.view.chat_message.ChatActivity
+import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
 import com.prng.aeedee_android_chat.view.chat_user_bottom.UserListBottomSheetDialog
 import com.prng.aeedee_android_chat.visible
 import com.vanniktech.emoji.EmojiManager
@@ -217,14 +218,20 @@ class ChatUserListActivity : AppCompatActivity() {
         }
 
         mViewModel.onDeleteMessageListener = { deletedIds ->
-            deletedIds.ids?.forEach { id ->
-                mViewModel.updateChildEntityInParent(chatDao, deletedIds.user_id.toString(), id, 1)
-            }
+//            deletedIds.ids?.forEach { id ->
+//                mViewModel.updateChildEntityInParent(chatDao, deletedIds.user_id.toString(), id, 1)
+//            }
+            mViewModel.updateChildEntityInParent(
+                chatDao, deletedIds.ids!!, deletedIds.user_id.toString(), null, ifData = 1
+            )
         }
 
         mViewModel.onReactionMessageListener = { data ->
+//            mViewModel.updateChildEntityInParent(
+//                chatDao, data.userId.toString(), data.messageId.toString(), 2, data
+//            )
             mViewModel.updateChildEntityInParent(
-                chatDao, data.userId.toString(), data.messageId.toString(), 2, data
+                chatDao, arrayListOf(data.messageId!!), data.userId.toString(), data, ifData = 2
             )
         }
 
