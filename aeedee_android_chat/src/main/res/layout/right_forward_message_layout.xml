@@ -115,6 +115,16 @@
 
                     </androidx.constraintlayout.widget.ConstraintLayout>
 
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/aivMessageImage"
+                        android:layout_width="165dp"
+                        android:layout_height="200dp"
+                        android:layout_marginTop="2dp"
+                        android:scaleType="centerCrop"
+                        android:visibility="@{data.files.size() > 0}"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/clForwardLayout" />
+
                     <androidx.appcompat.widget.AppCompatTextView
                         android:id="@+id/atvRightTextMessage"
                         android:layout_width="wrap_content"
@@ -127,9 +137,9 @@
                         android:text="@{data.message}"
                         android:textColor="@color/white"
                         android:textColorLink="@color/link_blue"
-                        android:visibility="@{data.message.length() > 0}"
+                        android:visibility="@{data.files.size() == 0 &amp;&amp; data.message.length() > 0}"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/clForwardLayout"
+                        app:layout_constraintTop_toBottomOf="@+id/aivMessageImage"
                         app:layout_constraintWidth_max="250dp"
                         app:layout_constraintWidth_min="40dp"
                         tools:text="Hi.. www.google.com" />
@@ -155,7 +165,7 @@
                         android:id="@+id/aivMessageReadStatus"
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:tint="@{data.read_status == 1 ? @color/white : data.read_status == 2 ? @color/white : @color/medium_orange}"
+                        android:tint="@{data.read_status == 1 ? @color/white : data.read_status == 2 ? @color/white : @color/double_tick_green}"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/atvRightTextMessage"
                         app:srcCompat="@{data.read_status == 1 ? @drawable/ic_single_tick_icon : @drawable/ic_double_tick_icon}" />

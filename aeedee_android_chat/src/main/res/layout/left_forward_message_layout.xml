@@ -113,6 +113,16 @@
 
                     </androidx.constraintlayout.widget.ConstraintLayout>
 
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/aivMessageImage"
+                        android:layout_width="165dp"
+                        android:layout_height="200dp"
+                        android:layout_marginTop="2dp"
+                        android:scaleType="centerCrop"
+                        android:visibility="@{data.files.size() > 0}"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/clForwardLayout" />
+
                     <androidx.appcompat.widget.AppCompatTextView
                         android:id="@+id/atvLeftTextMessage"
                         android:layout_width="wrap_content"
@@ -126,8 +136,9 @@
                         android:text="@{data.message}"
                         android:textColor="@color/black"
                         android:textColorLink="@color/blue"
+                        android:visibility="@{data.files.size() == 0 &amp;&amp; data.message.length() > 0}"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/clForwardLayout"
+                        app:layout_constraintTop_toBottomOf="@+id/aivMessageImage"
                         app:layout_constraintWidth_max="250dp"
                         app:layout_constraintWidth_min="40dp"
                         tools:text="Hi.." />

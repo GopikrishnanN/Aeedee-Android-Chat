@@ -16,6 +16,7 @@ import com.prng.aeedee_android_chat.userID
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
+import com.prng.aeedee_android_chat.view.chat_message.model.message.FileData
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -73,7 +74,7 @@ class ForwardUsersViewModel : ViewModel() {
             sJSONObject.put("msgType", msgType)
             sJSONObject.put("repliedId", "")
             sJSONObject.put("replymsg", "")
-            sJSONObject.put("chat_type", msgType)
+            sJSONObject.put("chat_type", getChatType(mMessageData?.files))
             sJSONObject.put("createdAt", getCurrentDateTime())
             sJSONObject.put("updatedAt", getCurrentDateTime())
             sJSONObject.put("timezone", getTimeZone())
@@ -81,6 +82,10 @@ class ForwardUsersViewModel : ViewModel() {
             Log.e("TAG", "messages...: $sJSONObject")
         }
         return sJSONObject
+    }
+
+    private fun getChatType(files: MutableList<FileData>?): String {
+        return if (files?.isNotEmpty() == true) "Image" else "Text"
     }
 
     private fun getReadStatus(receiverId: String): Int {

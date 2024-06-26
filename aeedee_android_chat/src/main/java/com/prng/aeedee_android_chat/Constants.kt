@@ -15,6 +15,8 @@ import android.view.inputmethod.InputMethodManager
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
+import androidx.swiperefreshlayout.widget.CircularProgressDrawable
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.prng.aeedee_android_chat.util.URIPathHelper
@@ -253,4 +255,19 @@ fun fetchUriPath(context: Context, uri: Uri?): String? {
         return uriPathHelper.getPath(context, it)
     }
     return null
+}
+
+fun gifCircularProgress(
+    context: Context, strokeWidth: Float = 5f, centerRadius: Float = 30f
+): CircularProgressDrawable {
+    return CircularProgressDrawable(context).apply {
+        this.strokeWidth = strokeWidth
+        this.centerRadius = centerRadius
+        setColorSchemeColors(
+            ContextCompat.getColor(context, R.color.blue),
+            ContextCompat.getColor(context, R.color.black),
+            ContextCompat.getColor(context, R.color.white)
+        )
+        start()
+    }
 }

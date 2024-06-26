@@ -20,6 +20,7 @@
     <string name="delete_chats_text">Delete chats</string>
     <string name="aa_alphabets_text">Aa</string>
     <string name="this_message_was_deleted_text">This message was deleted</string>
+    <string name="you_deleted_this_message_text">You deleted this message</string>
     <string name="cancel_text">Cancel</string>
 
     <string name="regular_text_view">Regular TextView %s</string>

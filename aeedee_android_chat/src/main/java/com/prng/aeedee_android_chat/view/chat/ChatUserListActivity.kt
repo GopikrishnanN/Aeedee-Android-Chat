@@ -1,7 +1,9 @@
 package com.prng.aeedee_android_chat.view.chat
 
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Rect
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -19,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.prng.aeedee_android_chat.R
 import com.prng.aeedee_android_chat.databinding.ActivityChatUserListBinding
+import com.prng.aeedee_android_chat.databinding.UploadLoaderLayoutBinding
 import com.prng.aeedee_android_chat.gone
 import com.prng.aeedee_android_chat.isNetworkConnection
 import com.prng.aeedee_android_chat.repository.ChatRepository
@@ -29,17 +32,20 @@ import com.prng.aeedee_android_chat.roomdb.entity_model.asDatabaseModel
 import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.toast
 import com.prng.aeedee_android_chat.userID
+import com.prng.aeedee_android_chat.util.CustomDialog
 import com.prng.aeedee_android_chat.view.chat.adapter.ChatUserListAdapter
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
+import com.prng.aeedee_android_chat.view.chat.model.DeleteUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.UserDataResponse
 import com.prng.aeedee_android_chat.view.chat.model.asDatabaseModel
 import com.prng.aeedee_android_chat.view.chat_message.ChatActivity
-import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
 import com.prng.aeedee_android_chat.view.chat_user_bottom.UserListBottomSheetDialog
 import com.prng.aeedee_android_chat.visible
+import com.prng.aeedee_android_chat.wrapContent
 import com.vanniktech.emoji.EmojiManager
 import com.vanniktech.emoji.google.GoogleEmojiProvider
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class ChatUserListActivity : AppCompatActivity() {
 
@@ -50,6 +56,9 @@ class ChatUserListActivity : AppCompatActivity() {
     private lateinit var chatDao: ChatDao
 
     private var isPause: Boolean = false
+
+    private lateinit var lDialog: CustomDialog<UploadLoaderLayoutBinding>
+    private lateinit var dList: ArrayList<UserDataResponse>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +71,8 @@ class ChatUserListActivity : AppCompatActivity() {
 
         database = DatabaseModule.provideAppDatabase(this)
         chatDao = DatabaseModule.provideChannelDao(database)
+
+        dList = ArrayList()
 
         binding.viewModel = mViewModel
         binding.lifecycleOwner = this
@@ -106,7 +117,8 @@ class ChatUserListActivity : AppCompatActivity() {
             }
 
             "vivo 1820" -> {
-                "65f29bd9c4f2640a7a24d99c"
+                "65ddbed3f98eadc6bee76361"
+//                "65f29bd9c4f2640a7a24d99c"
             }
 
             else -> {
@@ -178,13 +190,11 @@ class ChatUserListActivity : AppCompatActivity() {
         if (response.isNotEmpty()) {
             binding.clEmpty.gone()
             binding.fabAddUser.show()
-            mAdapter.updateList(response)
-            mAdapter.notifyDataSetChanged()
+            mAdapter.updateList(response, dList)
         } else {
             noChatGifImage()
             binding.clEmpty.visible()
-            mAdapter.updateList(arrayListOf())
-            mAdapter.notifyDataSetChanged()
+            mAdapter.updateList(arrayListOf(), dList)
             binding.fabAddUser.hide()
         }
     }
@@ -203,13 +213,55 @@ class ChatUserListActivity : AppCompatActivity() {
             openBottomSheet()
         }
 
-        mAdapter.onItemClick = { data ->
-            val intent = Intent(this, ChatActivity::class.java)
-            intent.putExtra("userId", userID)
-            intent.putExtra("receiverId", data.userId)
-            intent.putExtra("name", data.userName)
-            intent.putExtra("avatar", data.avatar)
-            startActivity(intent)
+        mAdapter.onItemClick = { data, isSelection ->
+            if (isSelection) {
+
+                val dSetData = dList.map { it._id }.toSet()
+
+                if (dSetData.contains(data._id)) dList.remove(data) else dList.add(data)
+
+                if (dList.isEmpty()) {
+                    mAdapter.isSelection = false
+                    binding.clUserMenu.gone()
+                } else {
+                    binding.clUserMenu.visible()
+                }
+
+            } else {
+
+                val intent = Intent(this, ChatActivity::class.java)
+                intent.putExtra("userId", userID)
+                intent.putExtra("receiverId", data.userId)
+                intent.putExtra("name", data.userName)
+                intent.putExtra("avatar", data.avatar)
+                startActivity(intent)
+
+            }
+        }
+
+        binding.aivCancel.setOnClickListener {
+            dList.clear()
+            binding.clUserMenu.gone()
+            mAdapter.isSelection = false
+            fetchUserList(ChatUserRequest(limit = 50))
+        }
+
+        binding.aivDelete.setOnClickListener {
+            val ids = dList.map { it.userId.toString() }
+            loader()
+            val request = DeleteUserRequest(receiverId = ids)
+            mViewModel.deleteChatUserList(request).observe(this) {
+                if (it != null) {
+                    dList.clear()
+                    mAdapter.isSelection = false
+                    binding.clUserMenu.gone()
+                    runBlocking {
+                        chatDao.deleteMessageDataByIds(ids)
+                    }
+                    dismiss()
+                    fetchUserList(ChatUserRequest(limit = 50))
+                }
+            }
         }
 
         mViewModel.onSearchListener = {
@@ -218,23 +270,16 @@ class ChatUserListActivity : AppCompatActivity() {
         }
 
         mViewModel.onDeleteMessageListener = { deletedIds ->
-//            deletedIds.ids?.forEach { id ->
-//                mViewModel.updateChildEntityInParent(chatDao, deletedIds.user_id.toString(), id, 1)
-//            }
             mViewModel.updateChildEntityInParent(
                 chatDao, deletedIds.ids!!, deletedIds.user_id.toString(), null, ifData = 1
             )
         }
 
         mViewModel.onReactionMessageListener = { data ->
-//            mViewModel.updateChildEntityInParent(
-//                chatDao, data.userId.toString(), data.messageId.toString(), 2, data
-//            )
             mViewModel.updateChildEntityInParent(
                 chatDao, arrayListOf(data.messageId!!), data.userId.toString(), data, ifData = 2
             )
         }
-
     }
 
     private fun openBottomSheet() {
@@ -252,8 +297,31 @@ class ChatUserListActivity : AppCompatActivity() {
         supportFragmentManager.let { modal.show(it, UserListBottomSheetDialog.TAG) }
     }
 
+    private fun loader() {
+        lDialog = CustomDialog(this, UploadLoaderLayoutBinding::inflate).apply {
+            configureDialog = { dialogBinding ->
+                window?.setLayout(wrapContent, wrapContent)
+                window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                setCanceledOnTouchOutside(false)
+                setCancelable(false)
+
+                dialogBinding.cpiLoader.visible()
+                dialogBinding.aivLoaderImage.gone()
+            }
+        }
+        if (!lDialog.isShowing)
+            lDialog.show()
+    }
+
+    private fun dismiss() {
+        if (this::lDialog.isInitialized)
+            if (lDialog.isShowing)
+                lDialog.dismiss()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        dismiss()
         mViewModel.emitChatDisconnection()
         Handler(Looper.myLooper()!!).postDelayed({
             SocketHandler.offEvents()

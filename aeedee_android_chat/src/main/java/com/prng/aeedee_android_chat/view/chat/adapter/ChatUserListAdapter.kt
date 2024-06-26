@@ -19,22 +19,27 @@ class ChatUserListAdapter : RecyclerView.Adapter<ChatUserListAdapter.ViewHolder>
 
     private var mList: List<UserDataResponse>? = listOf()
 
-    var onItemClick: ((UserDataResponse) -> Unit)? = null
+    var onItemClick: ((UserDataResponse, Boolean) -> Unit)? = null
 
-    fun setData(list: List<UserDataResponse>) {
-        mList = list
-    }
+    var isSelection: Boolean = false
 
-    fun updateList(newList: List<UserDataResponse>) {
+    fun updateList(newList: List<UserDataResponse>, newSelectedList: List<UserDataResponse>) {
+        val newSelectedMap = (newSelectedList.map { it._id }).associateWith { true }
+
         val diffCallback = UserListDiffCallback(mList!!, newList)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
 
         if (mList!!.isNotEmpty()) {
             (mList as ArrayList).clear()
-            (mList as ArrayList).addAll(newList)
+            (mList as ArrayList).addAll(newList.map {
+                it.copy(isSelected = newSelectedMap[it._id] ?: false)
+            })
         } else {
-            mList = newList
+            mList = newList.map {
+                it.copy(isSelected = newSelectedMap[it._id] ?: false)
+            }.toMutableList()
         }
+
         diffResult.dispatchUpdatesTo(this)
     }
 
@@ -51,8 +56,28 @@ class ChatUserListAdapter : RecyclerView.Adapter<ChatUserListAdapter.ViewHolder>
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val binding = holder.itemBinding
         binding.data = mList!![position]
+
+        if (mList!![position].isSelected!!) binding.aivSelectionItem.visible()
+        else binding.aivSelectionItem.gone()
+
         binding.clUserChat.setOnClickListener {
-            onItemClick?.invoke(mList!![position])
+            if (isSelection) {
+                mList!![holder.absoluteAdapterPosition].isSelected = !mList!![holder.absoluteAdapterPosition].isSelected!!
+                if (mList!![holder.absoluteAdapterPosition].isSelected!!) binding.aivSelectionItem.visible()
+                else binding.aivSelectionItem.gone()
+            }
+            onItemClick?.invoke(mList!![holder.absoluteAdapterPosition], isSelection)
+        }
+
+        binding.clUserChat.setOnLongClickListener {
+            if (!isSelection) {
+                isSelection = true
+                mList!![holder.absoluteAdapterPosition].isSelected = !mList!![holder.absoluteAdapterPosition].isSelected!!
+                if (mList!![holder.absoluteAdapterPosition].isSelected!!) binding.aivSelectionItem.visible()
+                else binding.aivSelectionItem.gone()
+                onItemClick?.invoke(mList!![holder.absoluteAdapterPosition], isSelection)
+            }
+            return@setOnLongClickListener true
         }
 
         holder.itemView.animate().alpha(1f).translationY(0f).setDuration(300).start()
@@ -66,14 +91,6 @@ class ChatUserListAdapter : RecyclerView.Adapter<ChatUserListAdapter.ViewHolder>
                     .centerCrop()
             )
             .into(binding.aivProfileImage)
-
-        if ((mList!!.size - 1) == position) {
-            binding.viewDivider.gone()
-            binding.viewBottom.visible()
-        } else {
-            binding.viewDivider.visible()
-            binding.viewBottom.gone()
-        }
     }
 
     class ViewHolder(var itemBinding: ChatUserListItemLayoutBinding) :

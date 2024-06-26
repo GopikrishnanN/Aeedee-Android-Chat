@@ -62,6 +62,9 @@ interface ChatDao {
 
     @Update
     suspend fun updateChildren(children: DatabaseMessageModel)
+
+    @Query("DELETE FROM DatabaseMessageData WHERE _id IN (:ids)")
+    suspend fun deleteMessageDataByIds(ids: List<String>)
 }
 
 @Database(

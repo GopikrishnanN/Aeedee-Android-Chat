@@ -13,8 +13,10 @@ import com.prng.aeedee_android_chat.socket.SocketHandler
 import com.prng.aeedee_android_chat.userID
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserResponse
+import com.prng.aeedee_android_chat.view.chat.model.DeleteUserRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
+import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,6 +25,8 @@ import org.json.JSONObject
 class ChatUserListViewModel : ViewModel() {
 
     private var usersLiveData: MutableLiveData<ChatUserResponse>? = MutableLiveData(null)
+
+    private var deleteLiveData: MutableLiveData<DeleteMessageResponse>? = MutableLiveData(null)
 
     var mSearchText: String = ""
 
@@ -37,6 +41,11 @@ class ChatUserListViewModel : ViewModel() {
     fun getChatUserList(request: ChatUserRequest): LiveData<ChatUserResponse>? {
         usersLiveData = ChatActivityRepository.getChatUserListApiCall(userId = userID, request)
         return usersLiveData
+    }
+
+    fun deleteChatUserList(request: DeleteUserRequest): LiveData<DeleteMessageResponse> {
+        deleteLiveData = ChatActivityRepository.deleteUserChatApiCall(userID, request)
+        return deleteLiveData as MutableLiveData<DeleteMessageResponse>
     }
 
     init {
@@ -96,44 +105,6 @@ class ChatUserListViewModel : ViewModel() {
         onSearchListener?.invoke(request)
     }
 
-//    fun updateChildEntityInParent(
-//        chatDao: ChatDao, parentId: String, childId: String, ifData: Int,
-//        reaction: DatabaseReactionData? = null
-//    ) =
-//        CoroutineScope(Dispatchers.IO).launch {
-//
-//            val parentWithChildren = chatDao.getParentWithChildren(parentId)
-//
-//            if (parentWithChildren != null) {
-//                if (parentWithChildren.parent != null) {
-//                    val childToUpdate =
-//                        parentWithChildren.parent.response.find { it.uniqueId == childId }
-//
-//                    if (ifData == 1)
-//                        childToUpdate?.status = 0
-//                    else if (ifData == 2)
-//                        childToUpdate?.reaction = arrayListOf(reaction!!)
-//
-//                    if (childToUpdate != null) {
-//                        chatDao.updateChildren(childToUpdate)
-//
-//                        val index =
-//                            parentWithChildren.parent.response.indexOfFirst { it.uniqueId == childId }
-//                        val childrenList = parentWithChildren.parent.response.toMutableList()
-//                        if (index != -1) {
-//                            val parentToUpdate = parentWithChildren.parent
-//                            childrenList[index] = childToUpdate
-//                            parentToUpdate.let {
-//                                it.receiverId = parentId
-//                                it.response = childrenList
-//                                chatDao.updateParent(it)
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-
     fun updateChildEntityInParent(
         chatDao: ChatDao, childIds: List<String>, receiverId: String,
         reaction: DatabaseReactionData? = null, ifData: Int
@@ -147,7 +118,8 @@ class ChatUserListViewModel : ViewModel() {
                 val childToUpdate: MutableList<DatabaseMessageModel> =
                     parentWithChildren.parent.response.map {
                         if (ifData == 1 && idsSet.contains(it.uniqueId)) it.status = 0
-                        if (ifData == 2 && idsSet.contains(it.uniqueId)) it.reaction = arrayListOf(reaction!!)
+                        if (ifData == 2 && idsSet.contains(it.uniqueId)) it.reaction =
+                            arrayListOf(reaction!!)
                         chatDao.updateChildren(it)
                         it
                     }.toMutableList()

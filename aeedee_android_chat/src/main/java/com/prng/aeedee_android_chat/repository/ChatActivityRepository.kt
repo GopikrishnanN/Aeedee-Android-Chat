@@ -3,13 +3,12 @@ package com.prng.aeedee_android_chat.repository
 import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import com.prng.aeedee_android_chat.Payload
 import com.prng.aeedee_android_chat.retrofit.RetrofitClient
 import com.prng.aeedee_android_chat.roomdb.deo.ChatDao
 import com.prng.aeedee_android_chat.roomdb.entity_model.DatabaseMessageModel
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserResponse
-import com.prng.aeedee_android_chat.view.chat_message.ChatViewModel
+import com.prng.aeedee_android_chat.view.chat.model.DeleteUserRequest
 import com.prng.aeedee_android_chat.view.chat_message.adapter.MessageItemListAdapter
 import com.prng.aeedee_android_chat.view.chat_message.model.ImageUploadRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.ImageUploadResponse
@@ -18,7 +17,6 @@ import com.prng.aeedee_android_chat.view.chat_message.model.MessageListResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.SendMessageRequest
-import com.prng.aeedee_android_chat.view.chat_message.model.asDatabaseModel
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageResponse
 import com.prng.aeedee_android_chat.view.chat_user_bottom.model.UsersListResponse
@@ -200,6 +198,34 @@ object ChatActivityRepository {
             override fun onResponse(
                 call: Call<DeleteMessageResponse>, response: Response<DeleteMessageResponse>
             ) {
+                val data = response.body()
+
+                chatSetterGetter.value = data
+            }
+        })
+
+        return chatSetterGetter
+    }
+
+    fun deleteUserChatApiCall(
+        userId: String, request: DeleteUserRequest
+    ): MutableLiveData<DeleteMessageResponse> {
+        val auth =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdhbmVzaC5pbmZvLmtAZ21haWwuY29tIiwiaWQiOiI2NWIxZjMzN2M2NWQ3ODc0NWRmMTVjYTEiLCJpYXQiOjE3MDgwMDAwMDl9.w7igawY4BRsbQpXrU6t3HuWv1e2lOzNmogZ345SYi9M"
+        val chatSetterGetter = MutableLiveData<DeleteMessageResponse>()
+
+        val call = RetrofitClient.apiInterface.deleteUserItem(auth, userId, request)
+
+        call.enqueue(object : Callback<DeleteMessageResponse> {
+            override fun onFailure(call: Call<DeleteMessageResponse>, t: Throwable) {
+                Log.v("DEBUG : ", t.message.toString())
+            }
+
+            override fun onResponse(
+                call: Call<DeleteMessageResponse>, response: Response<DeleteMessageResponse>
+            ) {
+                Log.v("DEBUG : ---------", response.body().toString())
+
                 val data = response.body()
 
                 chatSetterGetter.value = data

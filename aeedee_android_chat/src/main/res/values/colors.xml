@@ -14,4 +14,5 @@
     <color name="medium_orange">#FF9C00</color>
     <color name="black_transparent">#25000000</color>
     <color name="white_95_transparent">#95FFFFFF</color>
+    <color name="double_tick_green">#5FE909</color>
 </resources>

@@ -35,6 +35,19 @@
                 app:layout_constraintTop_toTopOf="parent"
                 tools:src="@mipmap/ic_launcher" />
 
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/aivSelectionItem"
+                android:layout_width="23dp"
+                android:layout_height="23dp"
+                android:layout_marginBottom="-8dp"
+                android:background="@drawable/select_outline_oval_bg"
+                android:padding="4dp"
+                android:tint="@color/white"
+                android:visibility="@{data.isSelected == true}"
+                app:layout_constraintBottom_toBottomOf="@+id/aivProfileImage"
+                app:layout_constraintEnd_toStartOf="@+id/atvName"
+                app:srcCompat="@drawable/ic_single_tick_icon" />
+
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/atvName"
                 android:layout_width="0dp"

@@ -109,7 +109,7 @@
                         android:id="@+id/aivMessageReadStatus"
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:tint="@{data.read_status == 1 ? @color/white : data.read_status == 2 ? @color/white : @color/medium_orange}"
+                        android:tint="@{data.read_status == 1 ? @color/white : data.read_status == 2 ? @color/white : @color/double_tick_green}"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/atvRightTextMessage"
                         app:srcCompat="@{data.read_status == 1 ? @drawable/ic_single_tick_icon : @drawable/ic_double_tick_icon}" />

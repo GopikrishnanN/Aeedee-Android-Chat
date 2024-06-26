@@ -3,11 +3,8 @@ package com.prng.aeedee_android_chat.view.chat_message.adapter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import androidx.swiperefreshlayout.widget.CircularProgressDrawable
 import com.bumptech.glide.Glide
-import com.prng.aeedee_android_chat.R
 import com.prng.aeedee_android_chat.databinding.LeftDeletedMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.LeftForwardMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.LeftImageMessageLayoutBinding
@@ -18,6 +15,7 @@ import com.prng.aeedee_android_chat.databinding.RightForwardMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightImageMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightReplyMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightTextMessageLayoutBinding
+import com.prng.aeedee_android_chat.gifCircularProgress
 import com.prng.aeedee_android_chat.gone
 import com.prng.aeedee_android_chat.setConstraintLayoutWidthToPercent
 import com.prng.aeedee_android_chat.util.UserIdData
@@ -85,8 +83,8 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
         return if (!isLeftMessage && data.status == 0) 7 // Right Deleted
         else if (isLeftMessage && data.status == 0) 6 // Left Deleted
-        else if (!isLeftMessage && data.chat_type == "forward") 9 // Right Forward
-        else if (isLeftMessage && data.chat_type == "forward") 8 // Left Forward
+        else if (!isLeftMessage && data.msgType == "forward") 9 // Right Forward
+        else if (isLeftMessage && data.msgType == "forward") 8 // Left Forward
         else if (!isLeftMessage && getFileStatus(data.files)) 5 // Right Images
         else if (isLeftMessage && getFileStatus(data.files)) 4 // Left Images
         else if (!isLeftMessage && getRepliedStatus(data)) 3 // Right Replied
@@ -351,22 +349,9 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     return@setOnLongClickListener true
                 }
 
-                val circularProgressDrawable =
-                    CircularProgressDrawable(binding.root.context).apply {
-                        strokeWidth = 5f
-                        centerRadius = 30f
-                        setColorSchemeColors(
-                            ContextCompat.getColor(binding.root.context, R.color.blue),
-                            ContextCompat.getColor(binding.root.context, R.color.black),
-                            ContextCompat.getColor(binding.root.context, R.color.white),
-                        )
-                        start()
-                    }
-
                 Glide.with(binding.root.context)
-                    .asBitmap()
-                    .load(mList!![position].files!!.first().url)
-                    .placeholder(circularProgressDrawable)
+                    .asBitmap().load(mList!![position].files!!.first().url)
+                    .placeholder(gifCircularProgress(binding.root.context))
                     .into(binding.aivMessageImage)
             }
 
@@ -393,25 +378,13 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     }
                 }
 
-//                val radius = 50f // Adjust the radius as needed
+//                val radius = 50f
 //                val mask = SideCurvedDrawable(radius)
-
-                val circularProgressDrawable =
-                    CircularProgressDrawable(binding.root.context).apply {
-                        strokeWidth = 5f
-                        centerRadius = 30f
-                        setColorSchemeColors(
-                            ContextCompat.getColor(binding.root.context, R.color.blue),
-                            ContextCompat.getColor(binding.root.context, R.color.black),
-                            ContextCompat.getColor(binding.root.context, R.color.white),
-                        )
-                        start()
-                    }
 
                 Glide.with(binding.root.context)
                     .asBitmap()
                     .load(mList!![position].files!!.first().url)
-                    .placeholder(circularProgressDrawable)
+                    .placeholder(gifCircularProgress(binding.root.context))
                     .into(binding.aivMessageImage)
 
 //                    .into(object : CustomTarget<Bitmap>() {
@@ -427,7 +400,7 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 //                            val paint = Paint()
 //                            paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
 //                            canvas.drawBitmap(resource, 0f, 0f, paint)
-//                            binding.aivMessageImage.setImageBitmap(output)
+//                            binding.setImageBitmap(output)
 //                            binding.aivMessageImage.setImageBitmap(resource)
 //                        }
 //
@@ -459,6 +432,13 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     }
                     return@setOnLongClickListener true
                 }
+
+                if (mList!![position].files!!.isNotEmpty())
+                    Glide.with(binding.root.context)
+                        .asBitmap()
+                        .load(mList!![position].files!!.first().url)
+                        .placeholder(gifCircularProgress(binding.root.context))
+                        .into(binding.aivMessageImage)
             }
 
             is RightForwardViewHolder -> {
@@ -483,6 +463,13 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                         selectionMessage(binding.aivSelectMessage, position)
                     }
                 }
+
+                if (mList!![position].files!!.isNotEmpty())
+                    Glide.with(binding.root.context)
+                        .asBitmap()
+                        .load(mList!![position].files!!.first().url)
+                        .placeholder(gifCircularProgress(binding.root.context))
+                        .into(binding.aivMessageImage)
             }
         }
     }
