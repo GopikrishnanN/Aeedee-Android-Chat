@@ -14,6 +14,7 @@ import com.prng.aeedee_android_chat.userID
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserResponse
 import com.prng.aeedee_android_chat.view.chat.model.DeleteUserRequest
+import com.prng.aeedee_android_chat.view.chat_message.model.ReadStatusData
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DatabaseReactionData
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.message.DeleteMessageResponse
@@ -37,6 +38,9 @@ class ChatUserListViewModel : ViewModel() {
 
     // Reaction Message
     var onReactionMessageListener: ((DatabaseReactionData) -> Unit)? = null
+
+    // Read Status
+    var onReadStatusListener: ((ReadStatusData) -> Unit)? = null
 
     fun getChatUserList(request: ChatUserRequest): LiveData<ChatUserResponse>? {
         usersLiveData = ChatActivityRepository.getChatUserListApiCall(userId = userID, request)
@@ -70,6 +74,10 @@ class ChatUserListViewModel : ViewModel() {
 
         ChatRepository.onReactionMessageUpdateListener = {
             onReactionMessageListener?.invoke(it)
+        }
+
+        ChatRepository.onReadStatusMessageUpdateListener = {
+            onReadStatusListener?.invoke(it)
         }
 
     }
@@ -107,7 +115,7 @@ class ChatUserListViewModel : ViewModel() {
 
     fun updateChildEntityInParent(
         chatDao: ChatDao, childIds: List<String>, receiverId: String,
-        reaction: DatabaseReactionData? = null, ifData: Int
+        reaction: DatabaseReactionData? = null, readStatus: ReadStatusData? = null, ifData: Int
     ) = CoroutineScope(Dispatchers.IO).launch {
         val idsSet = childIds.toSet()
         val parentWithChildren = chatDao.getParentWithChildren(receiverId)
@@ -120,6 +128,8 @@ class ChatUserListViewModel : ViewModel() {
                         if (ifData == 1 && idsSet.contains(it.uniqueId)) it.status = 0
                         if (ifData == 2 && idsSet.contains(it.uniqueId)) it.reaction =
                             arrayListOf(reaction!!)
+                        if (ifData == 3 && idsSet.contains(it.uniqueId)) it.readStatus =
+                            readStatus!!.readStatus!!.toInt()
                         chatDao.updateChildren(it)
                         it
                     }.toMutableList()

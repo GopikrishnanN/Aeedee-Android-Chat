@@ -663,7 +663,7 @@ class ChatViewModel : ViewModel() {
                 .dismissOnOutsideTouch(true).text("Emoji Popup")
                 .contentView(R.layout.emoji_popup_layout)
                 .animationPadding(SimpleTooltipUtils.pxFromDp(0F)).showArrow(false)
-                .ignoreOverlay(false).gravity(direction).animated(false).overlayOffset(13F)
+                .ignoreOverlay(true).gravity(direction).animated(false).overlayOffset(13F)
                 .transparentOverlay(false)
                 .highlightShape(OverlayView.HIGHLIGHT_SHAPE_RECTANGULAR_ROUNDED).build()
 
@@ -795,7 +795,7 @@ class ChatViewModel : ViewModel() {
                 if (list != null) {
                     if (list.isNotEmpty()) {
                         var unreadStatus =
-                            list.filter { (it.status != 0 || it.read_status != 3) && it.read_status != 3 && it.unique_id != null }
+                            list.filter { (it.status != 0 || it.read_status != 3) && it.read_status != 3 && it.unique_id != null && it.userId != ChatActivity.userId }
                                 .map { it.unique_id }
                         unreadStatus.forEach { uniqueId ->
                             val index = getItemIndex(

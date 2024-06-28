@@ -5,14 +5,21 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.CLIPBOARD_SERVICE
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.util.DisplayMetrics
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.webkit.MimeTypeMap
+import android.widget.TextView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
@@ -270,4 +277,30 @@ fun gifCircularProgress(
         )
         start()
     }
+}
+
+fun textToDrawable(context: Context, text: String): Drawable {
+
+    val textView = TextView(context).apply {
+        this.text = text.uppercase(Locale.ROOT)
+        this.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+        this.setTextColor(Color.WHITE)
+        this.setBackgroundColor(Color.parseColor("#F39D11"))
+        this.setPadding(25, 20, 25, 25)
+    }
+
+    textView.measure(
+        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+    )
+    val width = textView.measuredWidth
+    val height = textView.measuredHeight
+
+    textView.layout(0, 0, width, height)
+
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    textView.draw(canvas)
+
+    return BitmapDrawable(context.resources, bitmap)
 }

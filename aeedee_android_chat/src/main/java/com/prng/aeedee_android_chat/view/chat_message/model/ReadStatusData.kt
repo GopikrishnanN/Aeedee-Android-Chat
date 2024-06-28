@@ -5,4 +5,6 @@ import com.google.gson.annotations.SerializedName
 data class ReadStatusData(
     @SerializedName("ids") val ids: List<String>? = arrayListOf(),
     @SerializedName("read_status") var readStatus: String? = "",
+    @SerializedName("receiver_id") var receiverId: String? = "",
+    @SerializedName("userId") var userId: String? = ""
 )

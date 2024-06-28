@@ -81,7 +81,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 class ChatActivity : AppCompatActivity() {
-    private lateinit var mActivityBinding: ActivityChatBinding
+    lateinit var mActivityBinding: ActivityChatBinding
     private val mViewModel: ChatViewModel by viewModels()
     private lateinit var mAdapter: MessageItemListAdapter
     private lateinit var layoutManager: LinearLayoutManager
@@ -350,17 +350,16 @@ class ChatActivity : AppCompatActivity() {
                         }
 
                     mAdapter.addData(processedData)
-                    mActivityBinding.rvChatMessageList.visible()
-                    mActivityBinding.svNoMessageIcon.gone()
 
                     setDbNewMessage()
 
                     val recyclerViewState = onSaveInstanceRV()
                     runOnUiThread {
-                        if (mAdapter.getAllItems().size == 1) {
+                        val size = mAdapter.getAllItems().size
+                        if (size == 1) {
                             mAdapter.notifyDataSetChanged()
                         } else {
-                            if ((mAdapter.getAllItems().size - 1) > -1)
+                            if ((size - 1) > -1)
                                 mAdapter.notifyItemChanged(
                                     (mAdapter.getAllItems().size - 1), Payload.Update.name
                                 )
@@ -369,6 +368,8 @@ class ChatActivity : AppCompatActivity() {
                     onRestoreInstance(recyclerViewState)
 
                     scrollList()
+                    mActivityBinding.rvChatMessageList.visible()
+                    mActivityBinding.svNoMessageIcon.gone()
                 } catch (_: Exception) {
                 }
             }
@@ -695,17 +696,14 @@ class ChatActivity : AppCompatActivity() {
                 if (isFirstLocalDb) {
                     setDbResponse(it.response)
                 } else {
-//                    if (isRecent) {
                     if (it.response.size > 49)
                         isFirstLocalDb = true
-//                    }
                     setDbResponse(it.response, true)
                 }
             }
         }
     }
 
-    //  chatDao.insertMessageDataUsers(dbUserMessage)
     private fun setDbResponse(response: List<MessageDataResponse>, isApi: Boolean) {
         lifecycleScope.launch {
             if (response != null)
@@ -794,7 +792,6 @@ class ChatActivity : AppCompatActivity() {
                     val processedList = mViewModel.addDateTime(responses)
                     mResponse?.addAll(processedList)
                     mAdapter.setData(mResponse!!)
-                    mAdapter.notifyDataSetChanged()
                     scrollList()
                     Handler(Looper.myLooper()!!).postDelayed({
                         isPagination = true
@@ -825,7 +822,6 @@ class ChatActivity : AppCompatActivity() {
                         val processedList = mViewModel.addDateTime(responses)
                         mResponse = processedList as ArrayList<MessageDataResponse>
                         mAdapter.setData(mResponse!!)
-                        mAdapter.notifyDataSetChanged()
                         Handler(Looper.myLooper()!!).postDelayed({
                             isPagination = true
                         }, 1000)
@@ -833,12 +829,9 @@ class ChatActivity : AppCompatActivity() {
                 }
                 mActivityBinding.rvChatMessageList.visible()
             }
-//            if (readStatusEmitCount < 2) {
-//            if (mAdapter.getAllItems().isNotEmpty()) {
-//                    readStatusEmitCount += 1
-//                mViewModel.updateReadStatus(mAdapter.getAllItems() as ArrayList<MessageDataResponse>)
-//                }
-//            }
+            if (mAdapter.getAllItems().isNotEmpty()) {
+                mViewModel.updateReadStatus(mAdapter, chatDao)
+            }
         } else {
             if (mResponse!!.isEmpty()) {
                 mActivityBinding.svNoMessageIcon.visible()
@@ -847,7 +840,9 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun scrollList() {
+        val recyclerViewState = onSaveInstanceRV()
         mActivityBinding.rvChatMessageList.visible()
+        onRestoreInstance(recyclerViewState)
         mActivityBinding.rvChatMessageList.viewTreeObserver.addOnGlobalLayoutListener(object :
             ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {

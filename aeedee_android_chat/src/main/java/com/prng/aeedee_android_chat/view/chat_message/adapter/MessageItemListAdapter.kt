@@ -3,6 +3,7 @@ package com.prng.aeedee_android_chat.view.chat_message.adapter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.prng.aeedee_android_chat.databinding.LeftDeletedMessageLayoutBinding
@@ -18,6 +19,7 @@ import com.prng.aeedee_android_chat.databinding.RightTextMessageLayoutBinding
 import com.prng.aeedee_android_chat.gifCircularProgress
 import com.prng.aeedee_android_chat.gone
 import com.prng.aeedee_android_chat.setConstraintLayoutWidthToPercent
+import com.prng.aeedee_android_chat.util.MessageListDiffCallback
 import com.prng.aeedee_android_chat.util.UserIdData
 import com.prng.aeedee_android_chat.view.chat_message.ChatActivity
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
@@ -37,8 +39,23 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var mUserData: UserIdData? = null
 
-    fun setData(list: List<MessageDataResponse>) {
-        mList = list
+//    fun setData(list: List<MessageDataResponse>) {
+//        mList = list
+//    }
+
+    fun setData(newList: List<MessageDataResponse>) {
+
+        val diffCallback = MessageListDiffCallback(mList!!, newList)
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
+
+        if (mList!!.isNotEmpty()) {
+            (mList as ArrayList).clear()
+            (mList as ArrayList).addAll(newList)
+        } else {
+            mList = ArrayList(newList)
+        }
+
+        diffResult.dispatchUpdatesTo(this)
     }
 
     fun addData(list: MessageDataResponse) {

@@ -59,6 +59,8 @@ object ChatRepository {
 
     var onReactionMessageUpdateListener: ((DatabaseReactionData) -> Unit)? = null
 
+    var onReadStatusMessageUpdateListener: ((ReadStatusData) -> Unit)? = null
+
     fun initSocket(activity: Activity) {
         mActivity = activity
         try {
@@ -82,7 +84,6 @@ object ChatRepository {
     fun onChatConnect() {
         onActiveTime()
         onListenerChat()
-        onReadStatusListener()
     }
 
     private fun onListenerChat() {
@@ -107,6 +108,7 @@ object ChatRepository {
         mSocket.on(NEW_MESSAGE, onNewMessage)
         mSocket.on(DELETE_MESSAGE, onDeleteMessage)
         mSocket.on(REACTION, onReaction)
+        onReadStatusListener()
     }
 
     fun emitReadStatusListener(data: JSONObject) {
@@ -260,6 +262,7 @@ object ChatRepository {
             val data = JSONObject(args[0].toString()).toDataClass<ReadStatusData?>()
             if (data != null) {
                 onReadStatusListener?.invoke(data)
+                onReadStatusMessageUpdateListener?.invoke(data)
             }
         }
     }
@@ -306,7 +309,6 @@ object ChatRepository {
         mSocket.off(START_TYPING, onStartTyping)
         mSocket.off(STOP_TYPING, onStopTyping)
         mSocket.off(Socket.EVENT_CONNECT_ERROR, onConnectionError)
-        mSocket.off(READ_STATUS, onReadStatus)
     }
 
     fun offEventsConnection() {
@@ -315,5 +317,6 @@ object ChatRepository {
         mSocket.off(NEW_MESSAGE, onNewMessage)
         mSocket.off(DELETE_MESSAGE, onDeleteMessage)
         mSocket.off(REACTION, onReaction)
+        mSocket.off(READ_STATUS, onReadStatus)
     }
 }

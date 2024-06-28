@@ -280,6 +280,12 @@ class ChatUserListActivity : AppCompatActivity() {
                 chatDao, arrayListOf(data.messageId!!), data.userId.toString(), data, ifData = 2
             )
         }
+
+        mViewModel.onReadStatusListener = { data ->
+            mViewModel.updateChildEntityInParent(
+                chatDao, data.ids!!, data.readStatus.toString(), null, readStatus = data, ifData = 3
+            )
+        }
     }
 
     private fun openBottomSheet() {

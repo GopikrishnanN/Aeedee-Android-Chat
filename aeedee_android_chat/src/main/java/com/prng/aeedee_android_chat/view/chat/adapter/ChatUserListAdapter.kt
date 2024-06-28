@@ -7,9 +7,9 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
-import com.prng.aeedee_android_chat.R
 import com.prng.aeedee_android_chat.databinding.ChatUserListItemLayoutBinding
 import com.prng.aeedee_android_chat.gone
+import com.prng.aeedee_android_chat.textToDrawable
 import com.prng.aeedee_android_chat.util.UserListDiffCallback
 import com.prng.aeedee_android_chat.view.chat.model.UserDataResponse
 import com.prng.aeedee_android_chat.visible
@@ -62,7 +62,8 @@ class ChatUserListAdapter : RecyclerView.Adapter<ChatUserListAdapter.ViewHolder>
 
         binding.clUserChat.setOnClickListener {
             if (isSelection) {
-                mList!![holder.absoluteAdapterPosition].isSelected = !mList!![holder.absoluteAdapterPosition].isSelected!!
+                mList!![holder.absoluteAdapterPosition].isSelected =
+                    !mList!![holder.absoluteAdapterPosition].isSelected!!
                 if (mList!![holder.absoluteAdapterPosition].isSelected!!) binding.aivSelectionItem.visible()
                 else binding.aivSelectionItem.gone()
             }
@@ -72,7 +73,8 @@ class ChatUserListAdapter : RecyclerView.Adapter<ChatUserListAdapter.ViewHolder>
         binding.clUserChat.setOnLongClickListener {
             if (!isSelection) {
                 isSelection = true
-                mList!![holder.absoluteAdapterPosition].isSelected = !mList!![holder.absoluteAdapterPosition].isSelected!!
+                mList!![holder.absoluteAdapterPosition].isSelected =
+                    !mList!![holder.absoluteAdapterPosition].isSelected!!
                 if (mList!![holder.absoluteAdapterPosition].isSelected!!) binding.aivSelectionItem.visible()
                 else binding.aivSelectionItem.gone()
                 onItemClick?.invoke(mList!![holder.absoluteAdapterPosition], isSelection)
@@ -82,15 +84,22 @@ class ChatUserListAdapter : RecyclerView.Adapter<ChatUserListAdapter.ViewHolder>
 
         holder.itemView.animate().alpha(1f).translationY(0f).setDuration(300).start()
 
+        val placeholder =
+            textToDrawable(binding.root.context, getCharName(mList!![position].userName))
+
         Glide.with(binding.root.context).load(mList!![position].avatar)
             .apply(
                 RequestOptions()
-                    .placeholder(R.drawable.ic_placeholder_icon)
-                    .error(R.drawable.ic_placeholder_icon)
-                    .fallback(R.drawable.ic_placeholder_icon)
+                    .placeholder(placeholder)
+                    .error(placeholder)
+                    .fallback(placeholder)
                     .centerCrop()
             )
             .into(binding.aivProfileImage)
+    }
+
+    private fun getCharName(userName: String?): String {
+        return if(userName!!.length > 1) userName.slice(0..1) else userName
     }
 
     class ViewHolder(var itemBinding: ChatUserListItemLayoutBinding) :

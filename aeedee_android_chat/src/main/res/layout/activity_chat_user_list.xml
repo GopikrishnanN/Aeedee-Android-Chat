@@ -44,6 +44,8 @@
                 android:layout_height="48dp"
                 android:layout_margin="10dp"
                 android:background="@drawable/search_corner_curve_edit_bg"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
                 android:visibility="visible"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
