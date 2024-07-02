@@ -59,6 +59,7 @@ import com.prng.aeedee_android_chat.view.chat_message.adapter.EmojiItemsAdapter
 import com.prng.aeedee_android_chat.view.chat_message.adapter.MenuItemsAdapter
 import com.prng.aeedee_android_chat.view.chat_message.adapter.MessageItemListAdapter
 import com.prng.aeedee_android_chat.view.chat_message.model.ActiveTimeData
+import com.prng.aeedee_android_chat.view.chat_message.model.ChatReadStatusRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.ImageUploadRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.ImageUploadResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
@@ -261,6 +262,12 @@ class ChatViewModel : ViewModel() {
         return ChatActivityRepository.uploadImageApi(auth, userID, request)
     }
 
+    // Api Request and Response Message Read
+    fun updateChatReadStatusApiCall(): LiveData<DeleteMessageResponse> {
+        val request = ChatReadStatusRequest(receiverId = receiverId)
+        return ChatActivityRepository.updateChatReadStatusApiCall(auth, userID, request)
+    }
+
     // Send message Api Request and Response Data
     fun sendChatMessage(): LiveData<MessageResponse> {
         uniqueId = getUniqueId()
@@ -286,8 +293,8 @@ class ChatViewModel : ViewModel() {
     }
 
     private fun getReadOnlineStatus(): Int {
-        if (onlineReadStatus.value != -1)
-            return onlineReadStatus.value ?: messageReadStatus.value ?: 1
+        if (onlineReadStatus.value != -1) return onlineReadStatus.value ?: messageReadStatus.value
+        ?: 1
         return messageReadStatus.value ?: 1
     }
 
@@ -698,8 +705,12 @@ class ChatViewModel : ViewModel() {
         val menuList: ArrayList<MessageMenuData> = arrayListOf()
         menuList.addAll(messageMenuList)
         if (isLeft) {
-            if (menuList.size == 4)
-                menuList.removeAt(3)
+            menuList.removeIf { it.id == 3 }
+        }
+        if (data.files != null) {
+            if (data.files.isNotEmpty()) {
+                menuList.removeIf { it.id == 1 }
+            }
         }
         mMenuAdapter.setData(menuList)
         mMenuAdapter.notifyDataSetChanged()

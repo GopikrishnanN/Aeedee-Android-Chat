@@ -1,7 +1,6 @@
 package com.prng.aeedee_android_chat.view.forward_chat
 
 import android.annotation.SuppressLint
-import android.os.Build
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import androidx.activity.viewModels
@@ -12,15 +11,14 @@ import com.prng.aeedee_android_chat.databinding.ActivityForwardUsersBinding
 import com.prng.aeedee_android_chat.gone
 import com.prng.aeedee_android_chat.isNetworkConnection
 import com.prng.aeedee_android_chat.toast
-import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
-import com.prng.aeedee_android_chat.view.chat.model.UserDataResponse
 import com.prng.aeedee_android_chat.view.chat_message.ChatActivity
-import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
+import com.prng.aeedee_android_chat.view.chat_user_bottom.model.UsersDataResponse
 import com.prng.aeedee_android_chat.view.forward_chat.adapter.ForwardUsersItemAdapter
 import com.prng.aeedee_android_chat.visible
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 
 class ForwardUsersActivity : AppCompatActivity() {
 
@@ -28,7 +26,8 @@ class ForwardUsersActivity : AppCompatActivity() {
     private val mViewModel: ForwardUsersViewModel by viewModels()
     private lateinit var mAdapter: ForwardUsersItemAdapter
 
-    private var mMessageData: MessageDataResponse? = null
+    private var sFiles: JSONArray? = null
+    private var sMessage: String? = null
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,22 +45,19 @@ class ForwardUsersActivity : AppCompatActivity() {
 
         binding.atvSelectedItems.movementMethod = ScrollingMovementMethod()
 
-        val request = ChatUserRequest(limit = 50)
-        fetchUserList(request)
+        fetchUserList()
 
         onClickListener()
     }
 
     private fun getIntentData() {
-        if (intent.hasExtra("data"))
-            mMessageData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableExtra("data", MessageDataResponse::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableExtra("data")
-            }
+        if (intent.hasExtra("files"))
+            sFiles = JSONArray(intent.getStringExtra("files").toString())
+        else JSONArray()
+        if (intent.hasExtra("message"))
+            sMessage = intent.getStringExtra("message").toString()
 
-        mViewModel.initData(mMessageData)
+        mViewModel.initData(sFiles, sMessage)
     }
 
     @SuppressLint("SetTextI18n")
@@ -86,7 +82,7 @@ class ForwardUsersActivity : AppCompatActivity() {
         mAdapter.onItemClick = { isSelected ->
             if (isSelected) {
                 val data =
-                    mAdapter.getSelectedItems().filter { it.isSelected!! }.map { it.userName }
+                    mAdapter.getSelectedItems().filter { it.isSelected!! }.map { it.name }
                 if (data.isNotEmpty()) {
                     binding.clBottomSend.visible()
                     binding.atvSelectedItems.text = data.joinToString(", ")
@@ -101,20 +97,20 @@ class ForwardUsersActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendForwardData(sItems: List<UserDataResponse>) {
+    private fun sendForwardData(sItems: List<UsersDataResponse>) {
         CoroutineScope(Dispatchers.IO).launch {
             sItems.forEachIndexed { index, user ->
-                mViewModel.emitSendMessage(user.userId.toString(), ((sItems.size - 1) == index))
+                mViewModel.emitSendMessage(user.friendId.toString(), ((sItems.size - 1) == index))
             }
         }
     }
 
-    private fun fetchUserList(request: ChatUserRequest) {
+    private fun fetchUserList() {
         if (!isNetworkConnection(applicationContext)) {
             val message = resources.getString(R.string.no_internet_connection)
             message.toast(applicationContext).show()
         } else {
-            mViewModel.getChatUserList(request)?.observe(this) {
+            mViewModel.getChatUserList()?.observe(this) {
                 if (it != null) {
                     setUiData(it.response)
                 }
@@ -122,7 +118,7 @@ class ForwardUsersActivity : AppCompatActivity() {
         }
     }
 
-    private fun setUiData(response: List<UserDataResponse>) {
+    private fun setUiData(response: List<UsersDataResponse>) {
         if (response.isNotEmpty()) {
             mAdapter.setData(response)
             mAdapter.notifyDataSetChanged()

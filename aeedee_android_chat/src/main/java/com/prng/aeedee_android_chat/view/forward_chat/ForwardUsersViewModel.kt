@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.google.gson.Gson
 import com.prng.aeedee_android_chat.MessageType
 import com.prng.aeedee_android_chat.extractFirstUrl
 import com.prng.aeedee_android_chat.getCurrentDateTime
@@ -14,9 +13,8 @@ import com.prng.aeedee_android_chat.repository.ChatActivityRepository
 import com.prng.aeedee_android_chat.repository.ChatRepository
 import com.prng.aeedee_android_chat.userID
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
-import com.prng.aeedee_android_chat.view.chat.model.ChatUserResponse
-import com.prng.aeedee_android_chat.view.chat_message.model.MessageDataResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.message.FileData
+import com.prng.aeedee_android_chat.view.chat_user_bottom.model.UsersListResponse
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -24,7 +22,7 @@ import java.util.Locale
 
 class ForwardUsersViewModel : ViewModel() {
 
-    private var usersLiveData: MutableLiveData<ChatUserResponse>? = MutableLiveData(null)
+    private var usersLiveData: MutableLiveData<UsersListResponse>? = MutableLiveData(null)
 
     var mSearchText: String = ""
 
@@ -38,22 +36,24 @@ class ForwardUsersViewModel : ViewModel() {
     // Unique Id
     var uniqueId: String = ""
 
-    // MessageDataResponse
-    private var mMessageData: MessageDataResponse? = null
+    // Send Data
+    private var files: JSONArray? = null
+    private var message: String? = ""
 
-    fun initData(messageData: MessageDataResponse?) {
-        mMessageData = messageData
+    fun initData(files: JSONArray?, message: String?) {
+        this.files = files
+        this.message = message
     }
 
-    fun getChatUserList(request: ChatUserRequest): LiveData<ChatUserResponse>? {
-        usersLiveData = ChatActivityRepository.getChatUserListApiCall(userId = userID, request)
+    fun getChatUserList(): LiveData<UsersListResponse>? {
+        val auth =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdhbmVzaC5pbmZvLmtAZ21haWwuY29tIiwiaWQiOiI2NWIxZjMzN2M2NWQ3ODc0NWRmMTVjYTEiLCJpYXQiOjE3MDgwMDAwMDl9.w7igawY4BRsbQpXrU6t3HuWv1e2lOzNmogZ345SYi9M"
+        usersLiveData = ChatActivityRepository.getFollowersListApiCall(auth = auth, userId = userID)
         return usersLiveData
     }
 
     fun emitSendMessage(receiverId: String, isCloseable: Boolean) {
         ChatRepository.emitSendMessage(sendMessage(receiverId))
-
-//        messageEventListener(uniqueId = uniqueId)
 
         onCloseActivity?.invoke(isCloseable)
     }
@@ -65,27 +65,34 @@ class ForwardUsersViewModel : ViewModel() {
 
             sJSONObject.put("receiver_id", receiverId)
             sJSONObject.put("user_id", userID)
-            sJSONObject.put("read_status", getReadStatus(receiverId))
             sJSONObject.put("unique_id", uniqueId)
-            sJSONObject.put("message", getMessageText(mMessageData))
-            sJSONObject.put("status", 1)
-            sJSONObject.put("link", getFistLink(getMessageText(mMessageData)))
-            sJSONObject.put("files", JSONArray(Gson().toJson(mMessageData?.files)))
             sJSONObject.put("msgType", msgType)
             sJSONObject.put("repliedId", "")
             sJSONObject.put("replymsg", "")
-            sJSONObject.put("chat_type", getChatType(mMessageData?.files))
+            sJSONObject.put("status", 1)
             sJSONObject.put("createdAt", getCurrentDateTime())
             sJSONObject.put("updatedAt", getCurrentDateTime())
             sJSONObject.put("timezone", getTimeZone())
+            sJSONObject.put("read_status", getReadStatus(receiverId))
+            sJSONObject.put("chat_type", getChatType())
 
+            // Extra data
+            sJSONObject.put("message", getMessageText())
+            sJSONObject.put("link", getFistLink(getMessageText()))
+            sJSONObject.put("files", files)
             Log.e("TAG", "messages...: $sJSONObject")
         }
         return sJSONObject
     }
 
-    private fun getChatType(files: MutableList<FileData>?): String {
-        return if (files?.isNotEmpty() == true) "Image" else "Text"
+    private fun getChatType(): String {
+        return if (files != null) {
+            val fileDataList: List<FileData> = (0 until files!!.length()).map { index ->
+                val json = files!!.getJSONObject(index)
+                FileData(url = json.getString("url"), type = json.getString("type"))
+            }
+            if (fileDataList.isNotEmpty()) "Image" else "Text"
+        } else "Text"
     }
 
     private fun getReadStatus(receiverId: String): Int {
@@ -96,16 +103,20 @@ class ForwardUsersViewModel : ViewModel() {
         return extractFirstUrl(messageText).toString()
     }
 
-    private fun getMessageText(data: MessageDataResponse?): String {
-        if (data != null) {
-            if (data.files!!.isNotEmpty()) {
-                val list = data.files.filter { it.type == "image" }.map { it.type }
+    private fun getMessageText(): String {
+        if (files != null) {
+            val fileDataList: List<FileData> = (0 until files!!.length()).map { index ->
+                val json = files!!.getJSONObject(index)
+                FileData(url = json.getString("url"), type = json.getString("type"))
+            }
+            if (fileDataList.isNotEmpty()) {
+                val list = fileDataList.filter { it.type == "image" }.map { it.type }
                 if (list.isNotEmpty()) {
                     return "Image"
                 }
             }
         }
-        return data?.message ?: ""
+        return message ?: ""
     }
 
     @Suppress("UNUSED_PARAMETER")

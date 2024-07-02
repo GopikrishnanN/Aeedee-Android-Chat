@@ -187,30 +187,34 @@ object ChatRepository {
 
     private val onNewMessage = Emitter.Listener { args ->
         mActivity.runOnUiThread {
-            val json = JSONObject(args[0].toString())
-            Log.e("onNewMessage", "onNewMessage: $json")
-            val response = MessageDataResponse(
-                _id = json.getOrDefault("_id", String()),
-                unique_id = json.getString("unique_id"),
-                userId = json.getString("userId"),
-                receiverId = json.getString("receiverId"),
-                read_status = json.getInt("read_status"),
-                message = json.getString("message"),
-                status = json.getInt("status"),
-                repliedId = json.getString("repliedId"),
-                replymsg = json.getString("replymsg"),
-                replyImage = json.getString("replyImage"),
-                timezone = json.getOrDefault("timezone", String()),
-                msgType = json.getString("msgType"),
-                link = json.getString("link"),
-                chat_type = json.getOrDefault("chat_type", String()),
-                files = jsonArrayToFileDataList(json.getJSONArray("files")),
-                createdAt = json.getString("createdAt"),
-                updatedAt = json.getString("updatedAt"),
-                originId = json.getOrDefault("userId", String()),
-            )
-            onNewMessageListener?.invoke(response)
-            onRefreshListListener?.invoke(true)
+            try {
+                val json = JSONObject(args[0].toString())
+                Log.e("onNewMessage", "onNewMessage: $json")
+                val response = MessageDataResponse(
+                    _id = json.getOrDefault("_id", String()),
+                    unique_id = json.getString("unique_id"),
+                    userId = json.getString("userId"),
+                    receiverId = json.getString("receiverId"),
+                    read_status = json.getInt("read_status"),
+                    message = json.getString("message"),
+                    status = json.getInt("status"),
+                    repliedId = json.getString("repliedId"),
+                    replymsg = json.getString("replymsg"),
+                    replyImage = json.getString("replyImage"),
+                    timezone = json.getOrDefault("timezone", String()),
+                    msgType = json.getString("msgType"),
+                    link = json.getString("link"),
+                    chat_type = json.getOrDefault("chat_type", String()),
+                    files = jsonArrayToFileDataList(json.getJSONArray("files")),
+                    createdAt = json.getString("createdAt"),
+                    updatedAt = json.getString("updatedAt"),
+                    originId = json.getOrDefault("userId", String()),
+                )
+                onNewMessageListener?.invoke(response)
+                onRefreshListListener?.invoke(true)
+            } catch (_: Exception) {
+                Log.e("onError", "onNewMessage: ${args[0]}")
+            }
         }
     }
 

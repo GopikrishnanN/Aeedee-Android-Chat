@@ -3,6 +3,7 @@ package com.prng.aeedee_android_chat.retrofit
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserRequest
 import com.prng.aeedee_android_chat.view.chat.model.ChatUserResponse
 import com.prng.aeedee_android_chat.view.chat.model.DeleteUserRequest
+import com.prng.aeedee_android_chat.view.chat_message.model.ChatReadStatusRequest
 import com.prng.aeedee_android_chat.view.chat_message.model.ImageUploadResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageListResponse
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageRequest
@@ -69,6 +70,13 @@ interface ApiInterface {
         @Header("Authorization") authorization: String,
         @Header("user-id") userId: String,
         @Body request: DeleteUserRequest,
+    ): Call<DeleteMessageResponse>
+
+    @POST("/user/mobile/message-read")
+    fun updateChatReadStatusApiCall(
+        @Header("Authorization") authorization: String,
+        @Header("user-id") userId: String,
+        @Body request: ChatReadStatusRequest,
     ): Call<DeleteMessageResponse>
 
 }

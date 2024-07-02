@@ -8,21 +8,21 @@ import com.bumptech.glide.Glide
 import com.prng.aeedee_android_chat.R
 import com.prng.aeedee_android_chat.databinding.ForwardUserItemLayoutBinding
 import com.prng.aeedee_android_chat.gone
-import com.prng.aeedee_android_chat.view.chat.model.UserDataResponse
+import com.prng.aeedee_android_chat.view.chat_user_bottom.model.UsersDataResponse
 import com.prng.aeedee_android_chat.visible
 import kotlinx.android.extensions.LayoutContainer
 
 class ForwardUsersItemAdapter : RecyclerView.Adapter<ForwardUsersItemAdapter.ItemViewHolder>() {
 
-    private var mList: List<UserDataResponse>? = listOf()
+    private var mList: List<UsersDataResponse>? = listOf()
 
     var onItemClick: ((Boolean) -> Unit)? = null
 
-    fun setData(list: List<UserDataResponse>) {
+    fun setData(list: List<UsersDataResponse>) {
         mList = list
     }
 
-    fun getSelectedItems(): List<UserDataResponse> {
+    fun getSelectedItems(): List<UsersDataResponse> {
         return mList!!.filter { it.isSelected == true }.map { it }
     }
 

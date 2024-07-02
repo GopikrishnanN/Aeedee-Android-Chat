@@ -12,6 +12,7 @@ data class UsersDataResponse(
     val userId: String? = "",
     val friendId: String? = "",
     var firstChar: String? = "",
+    var isSelected: Boolean? = false,
 ) {
     fun getFirstCharUppercase(): String {
         return name.toString()[0].uppercaseChar().toString()

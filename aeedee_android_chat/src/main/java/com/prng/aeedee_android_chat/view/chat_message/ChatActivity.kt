@@ -31,6 +31,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
+import com.google.gson.Gson
 import com.prng.aeedee_android_chat.MessageType
 import com.prng.aeedee_android_chat.Payload
 import com.prng.aeedee_android_chat.R
@@ -76,6 +77,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
 import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -213,39 +215,40 @@ class ChatActivity : AppCompatActivity() {
             chatDao.getMessageAll().map { it?.asDatabaseModel() }//.distinctUntilChanged()
 
         messages.observe(this) {
-            if (!isSocket)
-                if (!it.isNullOrEmpty()) {
-                    val list = it.filter { data -> data.receiverId == receiverId }
-                        .map { data -> data.response.asDatabaseModel() }
-                    if (list.isNotEmpty()) {
-                        isLocalData = true
-                        setUiData(list.first())
+            if (!isSocket) if (!it.isNullOrEmpty()) {
+                val list = it.filter { data -> data.receiverId == receiverId }
+                    .map { data -> data.response.asDatabaseModel() }
+                if (list.isNotEmpty()) {
+                    isLocalData = true
+                    setUiData(list.first())
 
-                        if (isFirstLocalDb) {
-                            isFirstLocalDb = false
-                            isRecent = true
-                            val lastMessageId =
-                                if (mResponse != null && mResponse!!.isNotEmpty()) mResponse!!.last().unique_id.toString() else ""
-                            if (lastMessageId.isNotEmpty()) {
-                                fetchMessageApi(lastMessageId, 1)
-                            }
-                        }
-                    } else {
-                        setUiData(emptyList())
-                        mActivityBinding.pbProgress.visible()
-                        mActivityBinding.svNoMessageIcon.gone()
+                    if (isFirstLocalDb) {
                         isFirstLocalDb = false
-                        fetchMessageApi(lastId, 0)
+                        isRecent = true
+                        val lastMessageId =
+                            if (mResponse != null && mResponse!!.isNotEmpty()) mResponse!!.last().unique_id.toString() else ""
+                        if (lastMessageId.isNotEmpty()) {
+                            fetchMessageApi(lastMessageId, 1)
+                        }
                     }
                 } else {
+                    setUiData(emptyList())
                     mActivityBinding.pbProgress.visible()
                     mActivityBinding.svNoMessageIcon.gone()
                     isFirstLocalDb = false
                     fetchMessageApi(lastId, 0)
                 }
+            } else {
+                mActivityBinding.pbProgress.visible()
+                mActivityBinding.svNoMessageIcon.gone()
+                isFirstLocalDb = false
+                fetchMessageApi(lastId, 0)
+            }
         }
 
         mViewModel.initData(receiverId, userId)
+
+        initializeApi()
 
         mViewModel.initSocket(this@ChatActivity)
 
@@ -316,7 +319,8 @@ class ChatActivity : AppCompatActivity() {
                 2 -> {
                     // - - Forward - -
                     val forwardIntent = Intent(applicationContext, ForwardUsersActivity::class.java)
-                    forwardIntent.putExtra("data", data)
+                    forwardIntent.putExtra("message", data.message)
+                    forwardIntent.putExtra("files", JSONArray(Gson().toJson(data.files)).toString())
                     startActivity(forwardIntent)
                 }
 
@@ -359,10 +363,9 @@ class ChatActivity : AppCompatActivity() {
                         if (size == 1) {
                             mAdapter.notifyDataSetChanged()
                         } else {
-                            if ((size - 1) > -1)
-                                mAdapter.notifyItemChanged(
-                                    (mAdapter.getAllItems().size - 1), Payload.Update.name
-                                )
+                            if ((size - 1) > -1) mAdapter.notifyItemChanged(
+                                (mAdapter.getAllItems().size - 1), Payload.Update.name
+                            )
                         }
                     }
                     onRestoreInstance(recyclerViewState)
@@ -522,6 +525,17 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
+    private fun initializeApi() {
+        if (!SocketHandler.getSocket().connected())
+            Handler(Looper.myLooper()!!).postDelayed({
+                mViewModel.updateChatReadStatusApiCall().observe(this) {
+                    if (it != null) {
+                        Log.e("TAG", "ChatReadStatusApiCall: ${it.message}")
+                    }
+                }
+            }, 100)
+    }
+
     private fun setDbNewMessage() {
         CoroutineScope(Dispatchers.IO).launch {
             val list = mAdapter.getAllItems() as ArrayList
@@ -531,11 +545,10 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun updateReadStatus(position: Int) {
-        if (mAdapter.getAllItems() != null)
-            if (mAdapter.getAllItems().size > position) {
-                mAdapter.updateData(position, mAdapter.getAllItems()[position])
-                runOnUiThread { mAdapter.notifyItemChanged(position, Payload.Update.name) }
-            }
+        if (mAdapter.getAllItems() != null) if (mAdapter.getAllItems().size > position) {
+            mAdapter.updateData(position, mAdapter.getAllItems()[position])
+            runOnUiThread { mAdapter.notifyItemChanged(position, Payload.Update.name) }
+        }
     }
 
     private fun emojiKeyboard() {
@@ -573,8 +586,9 @@ class ChatActivity : AppCompatActivity() {
         runOnUiThread {
             if (isSelected) {
                 mActivityBinding.clMessageLayout.gone()
-                if (mActivityBinding.aetEditMessage.text!!.isNotEmpty())
-                    mActivityBinding.aetEditMessage.setText("")
+                if (mActivityBinding.aetEditMessage.text!!.isNotEmpty()) mActivityBinding.aetEditMessage.setText(
+                    ""
+                )
                 hideKeyboardFrom(applicationContext, mActivityBinding.aetEditMessage)
                 mActivityBinding.clDeleteChat.visible()
                 mActivityBinding.atvCancelSelection.visible()
@@ -642,10 +656,9 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun emitActiveTimeLoop() {
-        if ((SocketHandler.getSocket().connected()))
-            scheduler = FunctionScheduler {
-                mViewModel.emitActiveTime()
-            }
+        if ((SocketHandler.getSocket().connected())) scheduler = FunctionScheduler {
+            mViewModel.emitActiveTime()
+        }
     }
 
     private fun initIntent() {
@@ -684,20 +697,18 @@ class ChatActivity : AppCompatActivity() {
             if (it != null) {
                 mActivityBinding.pbProgress.gone()
                 isSocket = false
-                if (it.lastId != null)
-                    if (it.lastId.isNotEmpty()) {
-                        lastId = it.lastId
-                        totalCount = it.count
-                    } else {
-                        lastId = ""
-                        totalCount = 0
-                    }
+                if (it.lastId != null) if (it.lastId.isNotEmpty()) {
+                    lastId = it.lastId
+                    totalCount = it.count
+                } else {
+                    lastId = ""
+                    totalCount = 0
+                }
 
                 if (isFirstLocalDb) {
                     setDbResponse(it.response)
                 } else {
-                    if (it.response.size > 49)
-                        isFirstLocalDb = true
+                    if (it.response.size > 49) isFirstLocalDb = true
                     setDbResponse(it.response, true)
                 }
             }
@@ -706,29 +717,28 @@ class ChatActivity : AppCompatActivity() {
 
     private fun setDbResponse(response: List<MessageDataResponse>, isApi: Boolean) {
         lifecycleScope.launch {
-            if (response != null)
-                if (response.isNotEmpty()) {
-                    if (mResponse!!.isEmpty()) {
-                        val (parentData, childData) = getParentData(response)
+            if (response != null) if (response.isNotEmpty()) {
+                if (mResponse!!.isEmpty()) {
+                    val (parentData, childData) = getParentData(response)
+                    chatDao.updateParentWithChildren(parentData, childData)
+                } else {
+                    if (!isFirstTime && isApi) {
+                        mResponse?.addAll(0, response)
+                        val (parentData, childData) = getParentData(mResponse!!)
+                        chatDao.updateParentWithChildren(parentData, childData)
+                    } else if (isRecent && isApi) {
+                        recentCount = response.size
+                        mResponse?.addAll(response)
+                        val (parentData, childData) = getParentData(mResponse!!)
                         chatDao.updateParentWithChildren(parentData, childData)
                     } else {
-                        if (!isFirstTime && isApi) {
-                            mResponse?.addAll(0, response)
-                            val (parentData, childData) = getParentData(mResponse!!)
-                            chatDao.updateParentWithChildren(parentData, childData)
-                        } else if (isRecent && isApi) {
-                            recentCount = response.size
-                            mResponse?.addAll(response)
-                            val (parentData, childData) = getParentData(mResponse!!)
-                            chatDao.updateParentWithChildren(parentData, childData)
-                        } else {
-                            val (parentData, childData) = getParentData(mResponse!!)
-                            chatDao.updateParentWithChildren(parentData, childData)
-                        }
+                        val (parentData, childData) = getParentData(mResponse!!)
+                        chatDao.updateParentWithChildren(parentData, childData)
                     }
-                } else if (mResponse!!.isEmpty()) {
-                    mActivityBinding.svNoMessageIcon.visible()
                 }
+            } else if (mResponse!!.isEmpty()) {
+                mActivityBinding.svNoMessageIcon.visible()
+            }
         }
     }
 
@@ -981,8 +991,7 @@ class ChatActivity : AppCompatActivity() {
                 setCancelable(false)
 
                 if (status == 1) {
-                    Glide.with(applicationContext)
-                        .load(R.drawable.animation_uploading_image)
+                    Glide.with(applicationContext).load(R.drawable.animation_uploading_image)
                         .into(dialogBinding.aivLoaderImage)
                     dialogBinding.cpiLoader.gone()
                     dialogBinding.aivLoaderImage.visible()
@@ -992,20 +1001,14 @@ class ChatActivity : AppCompatActivity() {
                 }
             }
         }
-        if (isActivity)
-            if (!lDialog.isShowing)
-                lDialog.show()
+        if (isActivity) if (!lDialog.isShowing) lDialog.show()
     }
 
     private fun dismiss() {
         if (isActivity) {
-            if (this::lDialog.isInitialized)
-                if (lDialog.isShowing)
-                    lDialog.dismiss()
+            if (this::lDialog.isInitialized) if (lDialog.isShowing) lDialog.dismiss()
 
-            if (this::eDialog.isInitialized)
-                if (eDialog.isShowing)
-                    eDialog.dismiss()
+            if (this::eDialog.isInitialized) if (eDialog.isShowing) eDialog.dismiss()
         }
     }
 
@@ -1013,13 +1016,12 @@ class ChatActivity : AppCompatActivity() {
         super.onResume()
         isActivity = true
 
-        if ((SocketHandler.getSocket().connected()))
-            if (this::scheduler.isInitialized)
-                scheduler.start()
+        if ((SocketHandler.getSocket()
+                .connected())
+        ) if (this::scheduler.isInitialized) scheduler.start()
 
         Handler(Looper.myLooper()!!).postDelayed({
-            if (isActivity)
-                mViewModel.emitChatConnection()
+            if (isActivity) mViewModel.emitChatConnection()
         }, 200)
     }
 
@@ -1027,9 +1029,9 @@ class ChatActivity : AppCompatActivity() {
         super.onPause()
         isActivity = false
 
-        if ((SocketHandler.getSocket().connected()))
-            if (this::scheduler.isInitialized)
-                scheduler.pause()
+        if ((SocketHandler.getSocket()
+                .connected())
+        ) if (this::scheduler.isInitialized) scheduler.pause()
 
         mViewModel.emitChatDisconnection()
     }
@@ -1042,8 +1044,7 @@ class ChatActivity : AppCompatActivity() {
             ChatRepository.offEvents()
             mViewModel.clearTyping()
             ChatRepository.onNewMessageListener = null
-            if (this::scheduler.isInitialized)
-                scheduler.stop()
+            if (this::scheduler.isInitialized) scheduler.stop()
         }
     }
 }

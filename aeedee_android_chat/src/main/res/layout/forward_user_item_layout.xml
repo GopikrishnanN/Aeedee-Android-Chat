@@ -7,7 +7,7 @@
 
         <variable
             name="data"
-            type="com.prng.aeedee_android_chat.view.chat.model.UserDataResponse" />
+            type="com.prng.aeedee_android_chat.view.chat_user_bottom.model.UsersDataResponse" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -45,52 +45,20 @@
             android:id="@+id/atvName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
             android:ellipsize="start"
             android:paddingHorizontal="10dp"
             android:singleLine="true"
-            android:text="@{data.userName}"
+            android:text="@{data.name}"
             android:textColor="@color/black"
             android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@+id/aivProfileImage"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
             app:layout_constraintTop_toTopOf="@id/aivProfileImage"
             tools:text="Pandiyan" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/atvMessage"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:ellipsize="end"
-            android:paddingHorizontal="10dp"
-            android:singleLine="true"
-            android:text="@{data.getMessageStatus()}"
-            android:textColor="@color/black"
-            android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
-            app:layout_constraintTop_toBottomOf="@+id/atvName"
-            app:visibilityGone="@{data.count > 0}"
-            tools:text="" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/atvMessageText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:ellipsize="end"
-            android:paddingHorizontal="10dp"
-            android:singleLine="true"
-            android:text="@{data.getMessageStatus()}"
-            android:textColor="#2B2A2A"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/aivProfileImage"
-            app:layout_constraintTop_toBottomOf="@+id/atvName"
-            app:visibilityGone="@{data.count == 0}"
-            tools:text="Mail not going from my end" />
-
         <View
+            android:id="@+id/view"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
             android:layout_marginHorizontal="20dp"
