@@ -12,6 +12,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.Uri
+import android.text.method.LinkMovementMethod
 import android.util.DisplayMetrics
 import android.util.TypedValue
 import android.view.View
@@ -21,11 +22,14 @@ import android.view.inputmethod.InputMethodManager
 import android.webkit.MimeTypeMap
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.widget.AppCompatTextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.core.text.HtmlCompat
 import androidx.swiperefreshlayout.widget.CircularProgressDrawable
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.prng.aeedee_android_chat.retrofit.RetrofitClient
 import com.prng.aeedee_android_chat.util.URIPathHelper
 import com.prng.aeedee_android_chat.view.chat_message.model.MessageMenuData
 import org.json.JSONArray
@@ -182,6 +186,19 @@ fun View.invisible(): Int {
     return this.visibility
 }
 
+fun String.replaceNextLineToEmpty(): String {
+    return replace("\n", "")
+}
+
+fun String.getLastPathSegmentOrUrl(): Pair<String, Boolean> {
+    if (this.contains(RetrofitClient.baseUrl)) {
+        val cleanUrl = if (this.endsWith("/")) this.dropLast(1) else this
+        val lastSegment = cleanUrl.substringAfterLast("/")
+        return Pair(lastSegment, true)
+    }
+    return Pair(this, false)
+}
+
 fun getTimeZone(): String {
     val timeZone = TimeZone.getDefault()
     return timeZone.id
@@ -277,6 +294,16 @@ fun gifCircularProgress(
         )
         start()
     }
+}
+
+fun displayHtml(html: String, atv: AppCompatTextView) {
+
+    val htmlForm = html.replace("\n", "<br>")
+
+    val styledText = HtmlCompat.fromHtml(htmlForm, HtmlCompat.FROM_HTML_MODE_LEGACY)
+
+    atv.movementMethod = LinkMovementMethod.getInstance()
+    atv.text = styledText
 }
 
 fun textToDrawable(context: Context, text: String): Drawable {

@@ -1,8 +1,16 @@
 package com.prng.aeedee_android_chat.view.chat_message.adapter
 
+import android.content.Intent
+import android.net.Uri
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.widget.AppCompatTextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -16,8 +24,11 @@ import com.prng.aeedee_android_chat.databinding.RightForwardMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightImageMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightReplyMessageLayoutBinding
 import com.prng.aeedee_android_chat.databinding.RightTextMessageLayoutBinding
+import com.prng.aeedee_android_chat.displayHtml
+import com.prng.aeedee_android_chat.getLastPathSegmentOrUrl
 import com.prng.aeedee_android_chat.gifCircularProgress
 import com.prng.aeedee_android_chat.gone
+import com.prng.aeedee_android_chat.replaceNextLineToEmpty
 import com.prng.aeedee_android_chat.setConstraintLayoutWidthToPercent
 import com.prng.aeedee_android_chat.util.MessageListDiffCallback
 import com.prng.aeedee_android_chat.util.UserIdData
@@ -265,6 +276,9 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
 
+                displayHtml(mList!![position].message, binding.atvLeftTextMessage)
+                setSpannableText(binding.atvLeftTextMessage)
+
                 binding.clLeftTexLayout.setOnLongClickListener {
                     if (!isSelection) {
                         onLongClickListener?.invoke(mList!![position], binding.clLeftTextMessage)
@@ -284,6 +298,9 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is RightTextViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
+
+                displayHtml(mList!![position].message, binding.atvRightTextMessage)
+                setSpannableText(binding.atvRightTextMessage)
 
                 binding.clMessageViewLayout.setOnLongClickListener {
                     if (!isSelection) {
@@ -312,6 +329,9 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
                 setConstraintLayoutWidthToPercent(binding.root.context, binding.clOverlayLayout)
 
+                displayHtml(mList!![position].message, binding.atvLeftTextMessage)
+                setSpannableText(binding.atvLeftTextMessage)
+
                 if (mList!![position].replyImage!!.isNotEmpty())
                     Glide.with(binding.root.context).load(mList!![position].replyImage)
                         .into(binding.atvRightReplyImage)
@@ -330,6 +350,9 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 binding.receiverId = mUserData
 
                 setConstraintLayoutWidthToPercent(binding.root.context, binding.clOverlayLayout)
+
+                displayHtml(mList!![position].message, binding.atvRightTextMessage)
+                setSpannableText(binding.atvRightTextMessage)
 
                 if (mList!![position].replyImage?.isNotEmpty() == true)
                     Glide.with(binding.root.context).load(mList!![position].replyImage)
@@ -443,6 +466,9 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
 
+                displayHtml(mList!![position].message, binding.atvLeftTextMessage)
+                setSpannableText(binding.atvLeftTextMessage)
+
                 binding.clLeftTexLayout.setOnLongClickListener {
                     if (!isSelection) {
                         onLongClickListener?.invoke(mList!![position], binding.clLeftTextMessage)
@@ -461,6 +487,9 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is RightForwardViewHolder -> {
                 val binding = holder.itemBinding
                 binding.data = mList!![position]
+
+                displayHtml(mList!![position].message, binding.atvRightTextMessage)
+                setSpannableText(binding.atvRightTextMessage)
 
                 binding.clMessageViewLayout.setOnLongClickListener {
                     if (!isSelection) {
@@ -489,6 +518,37 @@ class MessageItemListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                         .into(binding.aivMessageImage)
             }
         }
+    }
+
+    private fun setSpannableText(view: AppCompatTextView) {
+        val regex = Regex("""(https?://\S+)""")
+        val matches = regex.findAll(view.text)
+
+        val spannableString = SpannableString(view.text)
+
+        matches.forEach { match ->
+            val url = match.value
+            val start = match.range.first
+            val end = match.range.last + 1 // Include the last character in the range
+
+            val clickableSpan = object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    val (id, isID) = url.replaceNextLineToEmpty().getLastPathSegmentOrUrl()
+                    if (isID) {
+                        Log.e("ClickableSpan", "id: $id")
+                    } else {
+                        val intent = Intent(Intent.ACTION_VIEW)
+                        intent.data = Uri.parse(url)
+                        view.context.startActivity(intent)
+                    }
+                }
+            }
+
+            spannableString.setSpan(clickableSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+
+        view.text = spannableString
+        view.movementMethod = LinkMovementMethod.getInstance()
     }
 
     // Left Text
